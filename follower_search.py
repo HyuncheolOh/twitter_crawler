@@ -10,6 +10,7 @@ import tweepy
 import csv
 from tweepy import OAuthHandler
 from time import sleep
+import veracity_check as vc
 
 #-----------------------------------------------------------------------
 # load our API credentials 
@@ -17,7 +18,7 @@ from time import sleep
 config = {}
 execfile("config.py", config)
 token_list = []
-key_num = 1 
+key_num = 16 
 #-----------------------------------------------------------------------
 # load developer key list 
 #-----------------------------------------------------------------------
@@ -106,7 +107,7 @@ if __name__ == '__main__':
     load_key_list()
     api = load_api()
 
-    #files.reverse()
+    files.reverse()
     for post_id in files:
        
         if post_id == "friends" or post_id == "followers":
@@ -118,9 +119,15 @@ if __name__ == '__main__':
         followers_data = {}
         list_path = './Data/followers/list.json'
         followers_all_path = './Data/followers/all.json'
-        followers_path = './Data/followers/%s'%post_id
+        #followers_path = './Data/followers/%s'%post_id
         if not os.path.exists('./Data/followers'):
             os.makedirs('./Data/followers')
+        pid = post_id.replace(".json", "")
+        result = vc.check_veracity(pid)
+#        print("%s : %s"%(pid, result))
+        if result == "False":
+            continue
+
 
         if not os.path.exists(list_path):
             follower_list = {}
@@ -141,11 +148,12 @@ if __name__ == '__main__':
             screen_name = user['screen_name']
             followers_count = user['followers_count']
             #if followers check already done
-            if user_id in follower_list:
+
+            followers_path = './Data/followers/followers/%s'%user_id
+            if os.path.isfile(followers_path):
                 continue
 
             print("userid : %s, screen_name : %s"%(user_id, screen_name))
-    
             followers = []
             if int(followers_count) == 0 :
                 print("followers count is zero")
@@ -160,10 +168,12 @@ if __name__ == '__main__':
                     api = load_api()
                     continue
                 follower_list[user_id] = len(followers)
-                followers_data[user_id] = followers
-                    
+                #save user : file name , followers : content
+                #followers_data[user_id] = followers
+            
             with open(followers_path, 'w') as f:
-                json.dump(followers_data, f)
+                json.dump(followers, f)
+
 
             with open(list_path, 'w') as f:
                 json.dump(follower_list, f)

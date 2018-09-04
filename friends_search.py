@@ -10,6 +10,7 @@ import tweepy
 import csv
 from tweepy import OAuthHandler
 from time import sleep
+import veracity_check as vc
 
 #-----------------------------------------------------------------------
 # load our API credentials 
@@ -105,7 +106,7 @@ if __name__ == '__main__':
     files  = os.listdir(dirname)
     load_key_list()
     api = load_api()
-    #files.reverse()
+    files.reverse()
     for post_id in files:
        
         if post_id == "friends" or post_id == "followers":
@@ -116,11 +117,16 @@ if __name__ == '__main__':
         friend_list = None
         friends_data = {}
         list_path = './Data/friends/list.json'
-        friends_path = './Data/friends/%s'%post_id
+#        friends_path = './Data/friends/%s'%post_id
 #        friends_all_path = './Data/friends/all.json'
 
         if not os.path.exists('./Data/friends'):
             os.makedirs('./Data/friends')
+        pid = post_id.replace(".json", "")
+        result = vc.check_veracity(pid)
+        print("%s : %s"%(pid, result))
+        if result == "False":
+            continue
 
         if not os.path.exists(list_path):
             friend_list = {}
@@ -142,7 +148,8 @@ if __name__ == '__main__':
             follower_count = user['followers_count']
             friends_count = user['friends_count']
             #if friends check already done
-            if user_id in friend_list:
+            friends_path = './Data/followers/followers/%s'%user_id
+            if os.path.isfile(friends_path):
                 continue
 
             print("userid : %s, screen_name : %s"%(user_id, screen_name))
@@ -161,11 +168,11 @@ if __name__ == '__main__':
                     api = load_api()
                     continue
                 friend_list[user_id] = len(friends)
-                friends_data[user_id] = friends
+                #friends_data[user_id] = friends
                     
-            
+            friends_path = './Data/friends/friends/%s'%user_id
             with open(friends_path, 'w') as f:
-                json.dump(friends_data, f)
+                json.dump(friends, f)
 
             with open(list_path, 'w') as f:
                 json.dump(friend_list, f)

@@ -48,8 +48,8 @@ if __name__ == '__main__':
     for i, item in enumerate(rs):
         post_id, title, = item
         #check folder already exists
-        if os.path.exists('./Data/'+post_id) == True:
-            continue
+        #if os.path.exists('./Data/'+post_id) == True:
+        #    continue
 
         tokenizer = RegexpTokenizer(r'\w+')
         word_tokens = tokenizer.tokenize(title.lower())
