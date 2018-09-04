@@ -106,7 +106,11 @@ if __name__ == '__main__':
     files  = os.listdir(dirname)
     load_key_list()
     api = load_api()
+<<<<<<< HEAD
     files.reverse()
+=======
+    #files.reverse()
+>>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
     for post_id in files:
        
         if post_id == "friends" or post_id == "followers":
@@ -117,16 +121,23 @@ if __name__ == '__main__':
         friend_list = None
         friends_data = {}
         list_path = './Data/friends/list.json'
+<<<<<<< HEAD
 #        friends_path = './Data/friends/%s'%post_id
+=======
+        friends_path = './Data/friends/%s'%post_id
+>>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
 #        friends_all_path = './Data/friends/all.json'
 
         if not os.path.exists('./Data/friends'):
             os.makedirs('./Data/friends')
+<<<<<<< HEAD
         pid = post_id.replace(".json", "")
         result = vc.check_veracity(pid)
         print("%s : %s"%(pid, result))
         if result == "False":
             continue
+=======
+>>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
 
         if not os.path.exists(list_path):
             friend_list = {}
@@ -148,8 +159,12 @@ if __name__ == '__main__':
             follower_count = user['followers_count']
             friends_count = user['friends_count']
             #if friends check already done
+<<<<<<< HEAD
             friends_path = './Data/followers/followers/%s'%user_id
             if os.path.isfile(friends_path):
+=======
+            if user_id in friend_list:
+>>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
                 continue
 
             print("userid : %s, screen_name : %s"%(user_id, screen_name))
@@ -168,11 +183,19 @@ if __name__ == '__main__':
                     api = load_api()
                     continue
                 friend_list[user_id] = len(friends)
+<<<<<<< HEAD
                 #friends_data[user_id] = friends
                     
             friends_path = './Data/friends/friends/%s'%user_id
             with open(friends_path, 'w') as f:
                 json.dump(friends, f)
+=======
+                friends_data[user_id] = friends
+                    
+            
+            with open(friends_path, 'w') as f:
+                json.dump(friends_data, f)
+>>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
 
             with open(list_path, 'w') as f:
                 json.dump(friend_list, f)

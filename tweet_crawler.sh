@@ -6,7 +6,6 @@ do
 	echo "Run tweet crawler"
 	sleep 1
 
-	python tweet_factchecking_script.py
 	python tweet_script.py
 	
 	timestamp=`date +%Y%m%d%H%M`
