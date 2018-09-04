@@ -1,15 +1,13 @@
-<<<<<<< HEAD
-Data/
-config.py
-key.csv
-Timeline/
-Timeline_New/
-=======
 # File exception
 Data/
 key.csv
 config.py
-
+Timeline/
+Timeline_New/
+Network/PolarFriends
+Network/Retweet
+Network/Retweet_GraphInfo
+Network/PolarUsers
 
 
 # Byte-compiled / optimized / DLL files
