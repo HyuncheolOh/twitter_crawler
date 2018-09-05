@@ -32,6 +32,7 @@ def retweet_network(t):
             #check uid is origin's follower
             if int(tid) in followers:
                 t[tid]['confirm'] = True
+                t[tid]['depth'] = 2
                 confirm[tid] = t[tid]
             else:
                 unconfirm[tid] = t[tid]
@@ -78,6 +79,7 @@ def sub_retweet_network(confirm, unconfirm):
                 if int(user1) in followers:
                     tweet1['confirm'] = True
                     tweet1['parent'] = origin_user
+                    tweet1['depth'] = tweet2['depth'] + 1 
                     tweet1['parent_tweet'] = tid2
                     confirm_new[tid] = tweet1
                     change_count += 1
@@ -122,15 +124,15 @@ def get_tweet(path):
             u_id2 = retweet['user']['id_str']
             origin_name = retweet['user']['screen_name']
             time2 = retweet['created_at']
-            t[t_id1] = {'user' : u_id1, 'parent':u_id2, 'origin':u_id2, 'confirm': False, 'text' :  tweet1, 'origin_tweet':t_id2, 'parent_tweet' : t_id2, 'tweet':t_id1, 'screen_name':screen_name, 'origin_name':origin_name, 'time':time1}
-            t[t_id2] = {'user' : u_id2, 'parent':u_id2, 'origin':u_id2, 'confirm': True, 'text' :  tweet2, 'origin_tweet':t_id2, 'parent_tweet' : t_id2, 'tweet':t_id2, 'screen_name':origin_name, 'origin_name':origin_name, 'time':time2}
+            t[t_id1] = {'user' : u_id1, 'parent':u_id2, 'origin':u_id2, 'confirm': False, 'text' :  tweet1, 'origin_tweet':t_id2, 'parent_tweet' : t_id2, 'tweet':t_id1, 'screen_name':screen_name, 'origin_name':origin_name, 'time':time1, 'depth': 1}
+            t[t_id2] = {'user' : u_id2, 'parent':u_id2, 'origin':u_id2, 'confirm': True, 'text' :  tweet2, 'origin_tweet':t_id2, 'parent_tweet' : t_id2, 'tweet':t_id2, 'screen_name':origin_name, 'origin_name':origin_name, 'time':time2, 'depth': 1}
             unique_u[u_id2] = 1
        
        
        
         except KeyError as e:
             #no retweeted
-            t[t_id1] = {'user' : u_id1, 'parent':u_id1, 'origin':u_id1, 'confirm': True, 'text' :tweet1, 'origin_tweet':t_id1, 'parent_tweet' : t_id1, 'tweet':t_id1, 'screen_name':screen_name,'origin_name':screen_name, 'time':time1}
+            t[t_id1] = {'user' : u_id1, 'parent':u_id1, 'origin':u_id1, 'confirm': True, 'text' :tweet1, 'origin_tweet':t_id1, 'parent_tweet' : t_id1, 'tweet':t_id1, 'screen_name':screen_name,'origin_name':screen_name, 'time':time1, 'depth': 1}
         #print(tweet.created_at_string, tweet.all_text)
     
     # if follower, origin_follwer, friends counts are same as unique users, then struct retweet networks
@@ -163,7 +165,7 @@ if __name__ == "__main__":
         #if postid != '143241':
         #    continue
         #check retweet , friends already collected
-        Retweet = 'Retweet_New/'
+        Retweet = 'RetweetGraph/'
         Friends = 'PolarFriends/'
         if os.path.exists(Retweet + postid) and os.path.exists(Friends + postid):
             continue
