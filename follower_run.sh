@@ -1,22 +1,22 @@
 #!/bin/sh
 
 echo  "예제를 시작합니다"
-python follower_search.py & 
-python follower_search2.py & 
-python follower_search3.py & 
-python follower_search4.py & 
-
-python follower_search5.py & 
-python follower_search6.py & 
-python follower_search7.py & 
-python follower_search8.py & 
-
-
-python follower_search9.py & 
-python follower_search10.py & 
-python follower_search11.py & 
-python follower_search12.py & 
-
+python follower_search.py 2 & 
+python follower_search.py 3 & 
+python follower_search.py 4 & 
+python follower_search.py 5 & 
+python follower_search.py 6 & 
+python follower_search.py 7 & 
+python follower_search.py 8 & 
+python follower_search.py 9 & 
+python follower_search.py 10 & 
+python follower_search.py 11 & 
+python follower_search.py 12 & 
+python follower_search.py 13 & 
+python follower_search.py 14 & 
+python follower_search.py 15 & 
+python follower_search.py 16 & 
+python origin_follower_search.py 17 & 
 
 echo "모든 명령이 병렬로 실행되었습니다"
  

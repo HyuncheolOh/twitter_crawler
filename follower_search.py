@@ -8,8 +8,10 @@ import json
 import csv
 import tweepy
 import csv
+import sys
 from tweepy import OAuthHandler
 from time import sleep
+from random import shuffle
 import veracity_check as vc
 
 #-----------------------------------------------------------------------
@@ -18,7 +20,7 @@ import veracity_check as vc
 config = {}
 execfile("config.py", config)
 token_list = []
-key_num = 16 
+key_num = 2 
 #-----------------------------------------------------------------------
 # load developer key list 
 #-----------------------------------------------------------------------
@@ -102,12 +104,15 @@ def get_followers(api, screen_name):
 
 if __name__ == '__main__':
     #get folders
+    if len(sys.argv) >=2:
+        key_num = int(sys.argv[1])
+    print(key_num)
+
     dirname = './Data/'
     files  = os.listdir(dirname)
     load_key_list()
     api = load_api()
-
-    files.reverse()
+    shuffle(files)
     for post_id in files:
        
         if post_id == "friends" or post_id == "followers":
@@ -124,21 +129,22 @@ if __name__ == '__main__':
             os.makedirs('./Data/followers')
         pid = post_id.replace(".json", "")
         result = vc.check_veracity(pid)
-#        print("%s : %s"%(pid, result))
+        print("%s : %s"%(pid, result))
         if result == "False":
             continue
 
 
         if not os.path.exists(list_path):
             follower_list = {}
-        else :
-            follower_list = json.load(open(list_path))
+        #else :
+            #follower_list = json.load(open(list_path))
 
 #        if not os.path.exists(followers_all_path):
 #            followers_data = {}
 #        else : 
 #            followers_data = json.load(open(followers_all_path))
-
+        shuffle(lines)
+        lines.reverse()
         for line in lines:
             #print(line)
             tweet = json.loads(line)
@@ -148,17 +154,17 @@ if __name__ == '__main__':
             screen_name = user['screen_name']
             followers_count = user['followers_count']
             #if followers check already done
-
+        
             followers_path = './Data/followers/followers/%s'%user_id
             if os.path.isfile(followers_path):
                 continue
 
             print("userid : %s, screen_name : %s"%(user_id, screen_name))
-
+    
             followers = []
             if int(followers_count) == 0 :
                 print("followers count is zero")
-                follower_list[user_id] = 0
+                #follower_list[user_id] = 0
             else:
     
                 followers = get_followers(api, screen_name)
@@ -168,16 +174,17 @@ if __name__ == '__main__':
                     print("change access token and load_api again")
                     api = load_api()
                     continue
-                follower_list[user_id] = len(followers)
+#                follower_list[user_id] = len(followers)
                 #save user : file name , followers : content
                 #followers_data[user_id] = followers
             
+            followers_path = './Data/followers/followers/%s'%user_id
             with open(followers_path, 'w') as f:
                 json.dump(followers, f)
 
 
-            with open(list_path, 'w') as f:
-                json.dump(follower_list, f)
+#            with open(list_path, 'w') as f:
+#                json.dump(follower_list, f)
 
 
 

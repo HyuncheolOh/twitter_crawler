@@ -60,7 +60,7 @@ def count():
     print(len(false))
 
 if __name__ == "__main__":
-    dir_name = 'RetweetGraph/'
+    dir_name = 'RetweetNew/'
     files = os.listdir(dir_name)
     
     count()

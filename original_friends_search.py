@@ -3,6 +3,7 @@
 #  - lists all of a given user's friends (ie, followees)
 #-----------------------------------------------------------------------
 
+import sys
 import os, os.path
 import json
 import csv
@@ -102,6 +103,10 @@ def get_friends(api, screen_name):
 
 if __name__ == '__main__':
     #get folders
+    if len(sys.argv) >=2:
+        key_num = int(sys.argv[1])
+    print(key_num)
+
     dirname = './Data/'
     files  = os.listdir(dirname)
     load_key_list()
@@ -131,8 +136,8 @@ if __name__ == '__main__':
 
         if not os.path.exists(list_path):
             friend_list = {}
-        else :
-            friend_list = json.load(open(list_path))
+        #else :
+        #    friend_list = json.load(open(list_path))
 
 #        if not os.path.exists(friends_all_path):
 #            friends_data = {}
@@ -159,7 +164,10 @@ if __name__ == '__main__':
                 continue
 
             #if friends check already done
-            if user_id in friend_list:
+            #if user_id in friend_list:
+            #    continue
+            friends_path = './Data/friends/friends/%s'%user_id
+            if os.path.isfile(friends_path):
                 continue
 
             print("userid : %s, screen_name : %s"%(user_id, screen_name))
@@ -167,7 +175,7 @@ if __name__ == '__main__':
             friends = []
             if int(friends_count) == 0 :
                 print("friends count is zero")
-                friend_list[user_id] = 0
+                #friend_list[user_id] = 0
             else:
     
                 friends = get_friends(api, screen_name)
@@ -177,15 +185,15 @@ if __name__ == '__main__':
                     print("change access token and load_api again")
                     api = load_api()
                     continue
-                friend_list[user_id] = len(friends)
+                #friend_list[user_id] = len(friends)
                 #friends_data[user_id] = friends
                     
             friends_path = './Data/friends/friends/%s'%user_id
             with open(friends_path, 'w') as f:
                 json.dump(friends, f)
 
-            with open(list_path, 'w') as f:
-                json.dump(friend_list, f)
+            #with open(list_path, 'w') as f:
+                #json.dump(friend_list, f)
 
        
 

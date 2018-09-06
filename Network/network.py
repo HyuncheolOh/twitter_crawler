@@ -165,7 +165,7 @@ def extract_friends(t):
         else:
             friends = fr_cache[uid]
     #not implemented yet 
-    return 0
+    return friends 
 
 def get_tweet(path):
     ready = False
@@ -221,14 +221,15 @@ def get_tweet(path):
 
     #print('unique_users : %s , collected users : %s'%(len(unique_u), f_count))
     if len(t) <= 100:
-        continue
+        return 0, None
         
-    if f_count == len(unique_u) and fr_count == len(unique_f):
+    if f_count == len(unique_u) and fr_count == len(unique_u):
         print('%s : %s tweets'%(path, len(t)))
         return 1, t
     elif f_count == len(unique_u):
+        print('%s : %s tweets'%(path, len(t)))
         return 2, t
-    elif fr_count == len(unique_f):
+    elif fr_count == len(unique_u):
         return 3, t
     else:
         return 0, t
@@ -266,7 +267,7 @@ if __name__ == "__main__":
             r_network = retweet_network(t)
             
             #with open(Retweet + postid, 'w') as f:
-            with open(postid, 'w') as f:
+            with open(Retweet + postid, 'w') as f:
                 json.dump(r_network, f)
             #break
         

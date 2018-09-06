@@ -4,6 +4,7 @@
 #  - lists all of a given user's followers (ie, followees)
 #-----------------------------------------------------------------------
 
+import sys
 import os, os.path
 import json
 import csv
@@ -103,6 +104,10 @@ def get_followers(api, screen_name):
 
 if __name__ == '__main__':
     #get folders
+    if len(sys.argv) >=2:
+        key_num = int(sys.argv[1])
+    print(key_num)
+
     dirname = './Data/'
     files  = os.listdir(dirname)
     load_key_list()
