@@ -18,11 +18,7 @@ import veracity_check as vc
 config = {}
 execfile("config.py", config)
 token_list = []
-<<<<<<< HEAD
 key_num = 16 
-=======
-key_num = 1 
->>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
 #-----------------------------------------------------------------------
 # load developer key list 
 #-----------------------------------------------------------------------
@@ -111,11 +107,7 @@ if __name__ == '__main__':
     load_key_list()
     api = load_api()
 
-<<<<<<< HEAD
     files.reverse()
-=======
-    #files.reverse()
->>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
     for post_id in files:
        
         if post_id == "friends" or post_id == "followers":
@@ -127,7 +119,6 @@ if __name__ == '__main__':
         followers_data = {}
         list_path = './Data/followers/list.json'
         followers_all_path = './Data/followers/all.json'
-<<<<<<< HEAD
         #followers_path = './Data/followers/%s'%post_id
         if not os.path.exists('./Data/followers'):
             os.makedirs('./Data/followers')
@@ -137,11 +128,6 @@ if __name__ == '__main__':
         if result == "False":
             continue
 
-=======
-        followers_path = './Data/followers/%s'%post_id
-        if not os.path.exists('./Data/followers'):
-            os.makedirs('./Data/followers')
->>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
 
         if not os.path.exists(list_path):
             follower_list = {}
@@ -162,20 +148,13 @@ if __name__ == '__main__':
             screen_name = user['screen_name']
             followers_count = user['followers_count']
             #if followers check already done
-<<<<<<< HEAD
 
             followers_path = './Data/followers/followers/%s'%user_id
             if os.path.isfile(followers_path):
                 continue
 
             print("userid : %s, screen_name : %s"%(user_id, screen_name))
-=======
-            if user_id in follower_list:
-                continue
 
-            print("userid : %s, screen_name : %s"%(user_id, screen_name))
-    
->>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
             followers = []
             if int(followers_count) == 0 :
                 print("followers count is zero")
@@ -190,19 +169,12 @@ if __name__ == '__main__':
                     api = load_api()
                     continue
                 follower_list[user_id] = len(followers)
-<<<<<<< HEAD
                 #save user : file name , followers : content
                 #followers_data[user_id] = followers
             
             with open(followers_path, 'w') as f:
                 json.dump(followers, f)
 
-=======
-                followers_data[user_id] = followers
-                    
-            with open(followers_path, 'w') as f:
-                json.dump(followers_data, f)
->>>>>>> 13dc4927a55c9e04dee5333674fb1f4b48c5f70a
 
             with open(list_path, 'w') as f:
                 json.dump(follower_list, f)

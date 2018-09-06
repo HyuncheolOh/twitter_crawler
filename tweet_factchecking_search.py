@@ -5,7 +5,7 @@ import datetime as dt
 import time
 import os
 import sys
-
+import csv
 
 '''
 In order to use this script you should register a data-mining application
@@ -25,11 +25,16 @@ packages imported above.
 
 def load_api():
     ''' Function that loads the twitter API after authorizing the user. '''
+    with open('key.csv', 'rb') as csvfile:
+        keyread = csv.reader(csvfile, delimiter=',')
+        for row in keyread:
+            token = []
+            if 'consumer' not in row[0]:
+                consumer_key = row[0] 
+                consumer_secret = row[1]
+                access_token = row[2]
+                access_secret = row[3]
 
-    consumer_key = 'vqjpsBtqeyH2eNm0n8FdPfJJb'
-    consumer_secret = 'n6e481fnVD6Hs58gGHzGIkyWPaK3yNbDI2vo3XBVnIH5FfMJ25'
-    access_token = '970481481087774726-V8vi36RxAJM3ImG6NG5fv6ydoR8M9DN'
-    access_secret = 'fsroQTMnvysMDGKy70slOKLENYQTcZCwkwFXIAB7tFe1p'
     auth = OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_secret)
     # load the twitter API via tweepy

@@ -5,6 +5,7 @@ import datetime as dt
 import time
 import os
 import sys
+import csv
 
 
 '''
@@ -25,11 +26,16 @@ packages imported above.
 
 def load_api():
     ''' Function that loads the twitter API after authorizing the user. '''
+    with open('key.csv', 'rb') as csvfile:
+        keyread = csv.reader(csvfile, delimiter=',')
+        for row in keyread:
+            token = []
+            if 'consumer' not in row[0]:
+                consumer_key = row[0] 
+                consumer_secret = row[1]
+                access_token = row[2]
+                access_secret = row[3]
 
-    consumer_key = '1HUO4o89bSBOXxeMajhiNl9lS'
-    consumer_secret = 'dyrImsVYvaMgoACJanS05VBMRUeOvmwxjzETOd2umveaGn80r4'
-    access_token = '893742033424179201-gFGDUaqqBMD0zxbCZYbPFDgmyuJrOJE'
-    access_secret = 'zUDUJmsE99uO9ujZVJhtyFEshzxZMvhebQclQJOPVfjVj'
     auth = OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_secret)
     # load the twitter API via tweepy

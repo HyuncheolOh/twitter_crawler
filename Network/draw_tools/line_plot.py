@@ -19,9 +19,6 @@ class LinePlot:
         else:
             for i in range(len(data)):
                 ax.plot(data[i], label=label, linewidth=2.0)
-        if LinePlot.is_log == True: 
-#	    ax.set_xscale('log')
-            ax.set_xscale('symlog')
         ax.set_xlabel(self.x_label);
         ax.set_ylabel(self.y_label);
 
@@ -46,8 +43,11 @@ class LinePlot:
     def set_ylim(self, value):
         self.ax.set_ylim(0, value)
 
-    def set_log(self, log):
-        LinePlot.is_log = log;
+    def set_ylog(self):
+        self.ax.set_yscale('symlog')
+
+    def set_xlog(self):
+        self.ax.set_xscale('symlog')
 
     def save_image(self, path):
 	self.fig.savefig(path, bbox_inches='tight')
