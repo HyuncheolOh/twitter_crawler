@@ -25,7 +25,7 @@ results <- estimateIdeology2(user, friends)
 
 #read all files from PolarFriends folder
 
-inputdir = 'PolarFriends/'
+inputdir = 'PolarFriendsNew/'
 outputdir = 'PolarResult/'
 
 files = list.files(path=inputdir, pattern = NULL)
@@ -52,7 +52,7 @@ for (x in files) {
 		tryCatch(
 			polarity <- estimateIdeology2(user, friends),
 			error = function(e) {
-				polarity <- 0
+				polarity <- 999
 			}
 		)
 		#print(results)

@@ -49,8 +49,10 @@ def update():
     """
     #cascade calculation
     cascade = {}
+    child = {}
     for postid in files:
         cascade[postid] = {}
+        child[postid] = {}
         with open(dir_name + postid, 'r') as f:
             tweets = json.load(f)
 
@@ -58,6 +60,8 @@ def update():
                 tweet = tweets[key]
                 origin = tweet['origin_tweet']
                 cascade[postid][origin] = cascade[postid].get(origin, 0) + 1
+                parent = tweet['parent']
+                child[postid][parent] = child[postid].get(parent, 0) + 1 
 
     #update
     Bot = bot.load_bot()
@@ -69,6 +73,7 @@ def update():
             for tweet in tweets.values():
                 tweet['cascade'] = cascade[postid][tweet['origin_tweet']]
                 tweet['bot'] = bot.check_bot(Bot, tweet['user'])
+                tweet['child'] = child[postid].get(tweet['user'], 0)
         #print(postid)
         with open(dir_name+postid, 'w') as f:
             json.dump(tweets, f)
@@ -227,11 +232,11 @@ def draw_graph():
 
 
 if __name__ == "__main__":
-    dir_name = 'RetweetGraph/'
+    dir_name = 'RetweetNew/'
     files = os.listdir(dir_name)
     
-    draw_graph()
+    #draw_graph()
     #tim1e_series('True')
-    #update()
+    update()
 
 

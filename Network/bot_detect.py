@@ -38,7 +38,7 @@ def convert_json_csv():
     
     dir_name = "../Data/"
     
-    files = os.listdir('Retweet_New')
+    files = os.listdir('RetweetNew')
     
     for postid in files:
         #if os.path.exists(filename + postid):
@@ -113,6 +113,6 @@ def bot_patch():
 
 
 if __name__ == "__main__":
-    #convert_json_csv()
+    convert_json_csv()
     #bot_validation()
-    bot_patch()
+    #bot_patch()

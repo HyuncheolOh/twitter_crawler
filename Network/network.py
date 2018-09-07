@@ -153,20 +153,13 @@ def sub_retweet_network2(confirm, newconfirm, unconfirm):
 
 def extract_friends(t):
     start_time = time.time()
-    global fr_cache
     dir_name = '../Data/friends/friends/'
+    unique_users = {}
     for tid in t.keys():
         uid = t[tid]['user']
-        if fr_cache.get(uid, -1) == -1:
-            path = dir_name + uid
-            with open(path, 'r') as f:
-                friends = json.load(f)
-                fr_cache[uid] = friends
-        else:
-            friends = fr_cache[uid]
-    #not implemented yet 
-    return friends 
+        unique_users[uid] = 1
 
+    return unique_users.keys()
 def get_tweet(path):
     ready = False
     with open(path, 'r') as f:
@@ -214,10 +207,10 @@ def get_tweet(path):
         if os.path.exists(path):
             f_count += 1
             
-    #for uid in unique_f.keys():
-    #    path = '../Data/friends/friends/' + uid
-    #    if os.path.exists(path):
-    #        fr_count += 1
+    for uid in unique_u.keys():
+        path = '../Data/friends/friends/' + uid
+        if os.path.exists(path):
+            fr_count += 1
 
     #print('unique_users : %s , collected users : %s'%(len(unique_u), f_count))
     if len(t) <= 100:
@@ -247,11 +240,11 @@ if __name__ == "__main__":
 
         postid = file_name.replace('.json', '')
 
-        #if postid != '143241':
+        #if postid != '142961':
         #    continue
         #check retweet , friends already collected
         Retweet = 'RetweetNew/'
-        Friends = 'PolarFriends/'
+        Friends = 'PolarFriendsNew/'
         if os.path.exists(Retweet + postid) and os.path.exists(Friends + postid):
             continue
 
@@ -259,9 +252,8 @@ if __name__ == "__main__":
             continue
 
         result, t = get_tweet(dir_name + file_name)
-        if result == 1 or result == 2:
-            if os.path.exists(Retweet + postid):
-                continue
+        #print(result)
+        if (result == 1 or result == 2) and os.path.exists(Retweet + postid) == False:
     
             print(postid)
             r_network = retweet_network(t)
@@ -269,16 +261,13 @@ if __name__ == "__main__":
             #with open(Retweet + postid, 'w') as f:
             with open(Retweet + postid, 'w') as f:
                 json.dump(r_network, f)
-            #break
-        
-        if result == 1 or result == 3:
-            if os.path.exists(Friends + postid):
-                continue
+       
+        if (result == 1 or result == 3) and os.path.exists(Friends + postid) == False:
 
-            #print(postid)
-            #extracted_friends = extract_friends(t)
+            print(postid)
+            extracted_friends = extract_friends(t)
 
-            #with open(postid, 'w') as f:
-            #    json.dump(extract_friends, f)
+            with open(Friends + postid, 'w') as f:
+                json.dump(extracted_friends, f)
 
 

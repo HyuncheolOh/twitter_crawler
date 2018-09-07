@@ -5,6 +5,7 @@ config.py
 Timeline/
 Timeline_New/
 Network/PolarFriends
+Network/PolarFriendsNew
 Network/PolarUsers
 Network/PolarResult
 Network/Retweet
