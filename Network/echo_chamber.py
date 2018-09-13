@@ -18,7 +18,8 @@ def find_echo_chamber(num):
         with open(dir_name + postid, 'r') as f:
             tweets = json.load(f)
             #remove bots 
-            users[postid] = set([item['user'] for item in tweets.values() if item['bot']=='0'])
+            users[postid] = set([item['user'] for item in tweets.values() if item['bot'] == 0])
+            #print(users[postid]) 
 
     #find echo chamber (intersection) between rumor spreaders
     echo_chamber = {}
@@ -63,20 +64,45 @@ def find_echo_chamber(num):
     with open('Data/echo_chamber%s.json'%num, 'w') as f:
         json.dump(echo_chamber, f)
 
+def get_cascade_max_breadth():
+    dir_name = "RetweetNew/"
+    files = os.listdir(dir_name)
+    c_breadth = {}
+    for postid in files:
+        #cascade_breadth[postid] = {} #origin tweet + max_breadth
+        with open(dir_name + postid, 'r') as f:
+            tweets = json.load(f)
+        
+        b = {}
+        for tweet in tweets.values():
+            #same origin tweet, number of same depth node means breadth
+            origin_tweet = tweet['origin_tweet']
+            b[origin_tweet] = b.get(origin_tweet, {})
+            breadth = b[origin_tweet].get(tweet['depth'], 0) + 1 
+            b[origin_tweet][tweet['depth']] = breadth
+            c_breadth[origin_tweet] = c_breadth.get(origin_tweet, 0)
+            if c_breadth[origin_tweet] < breadth:
+                c_breadth[origin_tweet] = breadth
+        
+    return c_breadth
 
 def echo_chamber_anlysis():
     #depth
     #cascade
     #child count 
     #get echo chamber info
+
     cache = {}
     echo_chamber_depth = {}
     echo_chamber_cascade = {}
     echo_chamber_child = {}
+    echo_chamber_breadth = {}
     count = 0
 
     with open('Data/echo_chamber2.json') as f:
         echo_chambers = json.load(f)
+
+    cascade_breadth = get_cascade_max_breadth()
 
     print('total ', len(echo_chambers))
     for key in echo_chambers:
@@ -85,14 +111,14 @@ def echo_chamber_anlysis():
 
         postids = key.split('_')
         #print('echo chamber users', len(users))
-        if len(users) < 2:
-            continue
-
         count += 1 
         if count % 100 == 0:
             #print(count)
             print(count)
             #break
+
+        if len(users) < 2:
+            continue
         for user in users:
             for postid in postids:
                 echo_chamber_depth[postid] = echo_chamber_depth.get(postid, {})
@@ -110,12 +136,14 @@ def echo_chamber_anlysis():
                 depth = []
                 cascade = []
                 child = []
+                b = {}
                 for tid in tweets:
                     if user == tweets[tid]['user']:
                         depth.append(tweets[tid]['depth'])
                         cascade.append(tweets[tid]['cascade'])
                         child.append(tweets[tid]['child'])
-                
+                        echo_chamber_breadth[tweets[tid]['origin_tweet']] = cascade_breadth[tweets[tid]['origin_tweet']]            
+ 
                 echo_chamber_depth[postid][user] = echo_chamber_depth[postid].get(user, [])
                 echo_chamber_depth[postid][user].extend(depth)
                 
@@ -125,10 +153,10 @@ def echo_chamber_anlysis():
                 echo_chamber_child[postid][user] = echo_chamber_child[postid].get(user, [])
                 echo_chamber_child[postid][user].extend(child)
 
-
             
         #break
     #print(echo_chamber_depth)
+    #print(echo_chamber_breadth)
     
     files = os.listdir('RetweetNew')
     depth_all = []
@@ -143,15 +171,30 @@ def echo_chamber_anlysis():
             tweets = cache[postid]
 
         for td in tweets:
-            depth_all.append(tweets[td]['depth'])
-            cascade_all.append(tweets[td]['cascade'])
-            child_all.append(tweets[td]['child'])
+            try:
+                depth_all.append(tweets[td]['depth'])
+                cascade_all.append(tweets[td]['cascade'])
+                child_all.append(tweets[td]['child'])
+            except KeyError as e:
+                print(postid)
     
     with open('Data/depth_echochamber2.json', 'w') as f:
         #json.dump({'echo_chamber':echo_chamber_depth, 'all': depth_all} , f)
-        json.dump({'echo_chamber': {'depth':echo_chamber_depth, 'child':echo_chamber_child, 'cascade':echo_chamber_cascade}, 'all': {'depth':depth_all, 'cascade':cascade_all, 'child':child_all}}, f)
-
+        json.dump({'echo_chamber': {'depth':echo_chamber_depth, 'child':echo_chamber_child, 'cascade':echo_chamber_cascade, 'breadth':echo_chamber_breadth}, 'all': {'depth':depth_all, 'cascade':cascade_all, 'child':child_all, 'breadth':cascade_breadth}}, f)
+    
+    """
         
+    with open('Data/depth_echochamber2.json', 'r') as f:
+        data = json.load(f)
+    echo_chamber_depth = data['echo_chamber']['depth']
+    echo_chamber_cascade = data['echo_chamber']['cascade']
+    echo_chamber_child = data['echo_chamber']['child']
+    
+    depth_all = data['all']['depth']
+    cascade_all = data['all']['cascade']
+    child_all = data['all']['child']
+    """
+
     echo_depth_all = []
     echo_child_all = []
     echo_cascade_all = []
@@ -193,6 +236,15 @@ def echo_chamber_anlysis():
     cdf.set_legends(['all', 'echo chamber'], '')
     cdf.save_image('Image/echochamber_child_cdf.png')
 
+    #breadth
+    cdf = CDFPlot()
+    cdf.set_data(cascade_breadth.values(), 'all')
+    cdf.set_label('Breadth', 'CDF')
+    cdf.set_log(True)
+    cdf.set_data(echo_chamber_breadth.values(), 'echo chamber')
+    cdf.set_legends(['all', 'echo chamber'], '')
+    cdf.save_image('Image/echochamber_breadth_cdf.png')
+
 def get_random_user(users):
     max_num = len(users)
     user1 = users[random.randrange(0,max_num)]
@@ -215,22 +267,24 @@ def following_anlysis():
     friends_cache = {}
     comm_friends_count = {}
     postid = {}
+    count = 0
     for key in echo_chambers:
         #print(key)
         users = echo_chambers[key]
-
+        #print(users)
         postids = key.split('_')
         postid[key] = 1
-
-        #print('echo chamber users', len(users))
-        if len(users) < 2:
-            continue
-
+        
         count += 1 
         if count % 100 == 0:
             #print(count)
             print(count)
             #break
+        #print('echo chamber users', len(users))
+        if len(users) < 2:
+            continue
+
+       
         comm_friends = []
         for i in range(len(users)):
             user1 = users[i]
@@ -254,8 +308,10 @@ def following_anlysis():
 
                 common_friends = set(user_friends1) & set(user_friends2)
                 comm_friends.append(len(common_friends))
-        comm_friends_count[key] = comm_friends
-    
+            #print(comm_friends)
+            comm_friends_count[key] = comm_friends
+    print(len(comm_friends_count))
+    print(len(postid))
     dir_name = 'RetweetNew/'
     random_friends_count = {}
     for key in postid.keys():
@@ -302,7 +358,14 @@ def following_anlysis():
 
             
 if __name__ == "__main__":
-    #echo_chamber_anlysis()
-    find_echo_chamber(2)
+    #following_anlysis()
+    
+    echo_chamber_anlysis()
+
+    #find_echo_chamber(2)
     #find_echo_chamber(3)
     #find_echo_chamber(4)
+
+
+    #breadth = get_cascade_max_breadth()
+

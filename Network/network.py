@@ -3,6 +3,7 @@ import os
 import fileinput
 import time
 import veracity
+from dateutil import parser
 from random import shuffle
 from tweet_parser.tweet import Tweet
 from tweet_parser.tweet_parser_errors import NotATweetError
@@ -129,14 +130,15 @@ def sub_retweet_network2(confirm, newconfirm, unconfirm):
                 else:
                     followers = f_cache[origin_user]
                 
-                if int(user1) in followers:
-                    tweet1['confirm'] = True
-                    tweet1['parent'] = origin_user
-                    tweet1['depth'] = tweet2['depth'] + 1 
-                    tweet1['parent_tweet'] = tid2
-                    confirm_new[tid] = tweet1
-                    change_count += 1
-                    break
+                if int(user1) in followers: # time check add. parent's created at is faster than child's created at
+                    if parser.parse(tweet1['time']) > parser.parse(tweet2['time']):
+                        tweet1['confirm'] = True
+                        tweet1['parent'] = origin_user
+                        tweet1['depth'] = tweet2['depth'] + 1 
+                        tweet1['parent_tweet'] = tid2
+                        confirm_new[tid] = tweet1
+                        change_count += 1
+                        break
         if tweet1['confirm'] == False:
            unconfirm_new[tid] = tweet1
 
@@ -243,7 +245,7 @@ if __name__ == "__main__":
         #if postid != '142961':
         #    continue
         #check retweet , friends already collected
-        Retweet = 'RetweetNew/'
+        Retweet = 'Retweet/'
         Friends = 'PolarFriendsNew/'
         if os.path.exists(Retweet + postid) and os.path.exists(Friends + postid):
             continue

@@ -8,7 +8,7 @@ class LinePlot:
     is_log = False;
 
     def __init__(self):
-	self.fig = plt.figure(figsize=(10,10));
+	self.fig = plt.figure(figsize=(5,5));
 	self.ax = self.fig.add_subplot(1,1,1);
         self.x_label = 'x';
 	self.y_label = 'y';
@@ -24,8 +24,8 @@ class LinePlot:
 
     def set_plot_data(self, data, label):
         #self.ax.set_xscale('log', nonpox='clip')
-        colors = [plt.cm.spectral(i) for i in np.linspace(0, 1, len(data))]
-        self.ax.set_prop_cycle(cycler('color', colors))
+        #colors = [plt.cm.spectral(i) for i in np.linspace(0, 1, len(data))]
+        #self.ax.set_prop_cycle(cycler('color', colors))
         self.plot_line(data, self.ax, label)
 
     def set_xticks(self, xticks, rotation = 'horizontal'):
@@ -34,7 +34,9 @@ class LinePlot:
     def set_legends(self, legends, title=""):
         box = self.ax.get_position()
         self.ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        plt.legend(legends, loc='center left', title=title, fontsize=10, bbox_to_anchor=(1, 0.5))
+        #plt.legend(legends, loc='center left', title=title, fontsize=10, bbox_to_anchor=(1, 0.5))
+        #plt.legend(legends, loc=4, title=title, fontsize=10, bbox_to_anchor=(1, 0.5))
+        plt.legend(legends, loc=4, title=title, fontsize=10)
 
     def set_label(self, x, y):
 	self.x_label = x;
@@ -48,6 +50,16 @@ class LinePlot:
 
     def set_xlog(self):
         self.ax.set_xscale('symlog')
+    
+    def set_axvline(self, lines, published_date):
+        for line in lines:
+            plt.axvline(x=line, color='r', linestyle='--', linewidth=1)
+            
+        plt.axvline(x=published_date, color='g', linestyle='--', linewidth=2)
+    
+    def set_hline(self, lines, start, end):
+        for line in lines:
+            plt.hlines(line, start, end,  color='r', linestyle='--', linewidth=1)
 
     def save_image(self, path):
 	self.fig.savefig(path, bbox_inches='tight')

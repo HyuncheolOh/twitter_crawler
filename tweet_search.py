@@ -46,7 +46,7 @@ def tweet_search(api, query, max_tweets, max_id, since_id, geocode):
     ''' Function that takes in a search string 'query', the maximum
         number of tweets 'max_tweets', and the minimum (i.e., starting)
         tweet id. It returns a list of tweepy.models.Status objects. '''
-
+    print(query)
     searched_tweets = []
     while len(searched_tweets) < max_tweets:
         remaining_tweets = max_tweets - len(searched_tweets)
@@ -198,5 +198,5 @@ def search(post_id, query):
                 break
 
 
-#if __name__ == "__main__":
-    #search()
+if __name__ == "__main__":
+    search('123123123123', 'gamva2')

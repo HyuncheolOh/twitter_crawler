@@ -21,7 +21,7 @@ def check_veracity(post_id):
     pids = json.load(open('pids.json', 'r'))
     try:
         tweet_num = pids[post_id]
-        print("tweet num : %s"%tweet_num)
+#        print("tweet num : %s"%tweet_num)
     except KeyError as e:
         return False
 

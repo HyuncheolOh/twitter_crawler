@@ -129,7 +129,7 @@ if __name__ == '__main__':
             os.makedirs('./Data/followers')
         pid = post_id.replace(".json", "")
         result = vc.check_veracity(pid)
-        print("%s : %s"%(pid, result))
+        #print("%s : %s"%(pid, result))
         if result == "False":
             continue
 

@@ -41,8 +41,9 @@ def convert_json_csv():
     files = os.listdir('RetweetNew')
     
     for postid in files:
-        #if os.path.exists(filename + postid):
-        #    continue
+        if os.path.exists(filename + postid):
+            continue
+
         print(postid)
         f = open(filename + postid + '.csv', 'w') 
         cwriter = csv.writer(f, delimiter=',')
