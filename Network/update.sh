@@ -1,7 +1,7 @@
 #!/bin/sh
 
-echo 'Update network'
-python network.py
+#echo 'Update network'
+#python network.py
 
 echo 'Convert bot to csv '
 python bot_detect.py

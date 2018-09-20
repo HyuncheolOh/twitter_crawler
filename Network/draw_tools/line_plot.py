@@ -19,8 +19,8 @@ class LinePlot:
         else:
             for i in range(len(data)):
                 ax.plot(data[i], label=label, linewidth=2.0)
-        ax.set_xlabel(self.x_label);
-        ax.set_ylabel(self.y_label);
+        ax.set_xlabel(self.x_label, fontsize=20);
+        ax.set_ylabel(self.y_label, fontsize=20);
 
     def set_plot_data(self, data, label):
         #self.ax.set_xscale('log', nonpox='clip')
@@ -36,7 +36,7 @@ class LinePlot:
         self.ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
         #plt.legend(legends, loc='center left', title=title, fontsize=10, bbox_to_anchor=(1, 0.5))
         #plt.legend(legends, loc=4, title=title, fontsize=10, bbox_to_anchor=(1, 0.5))
-        plt.legend(legends, loc=4, title=title, fontsize=10)
+        plt.legend(legends, loc=4, title=title, fontsize=14)
 
     def set_label(self, x, y):
 	self.x_label = x;

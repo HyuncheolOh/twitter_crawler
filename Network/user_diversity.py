@@ -42,9 +42,11 @@ def get_random_user(users, num):
     return user_list
  
 #find mutual follower or have common friends 
-def diversity():
+def diversity(filename):
+    index = filename.replace(".json", "").split('echo_chamber')
+    print(index)
 
-    with open('Data/echo_chamber2.json') as f:
+    with open(filename) as f:
         echo_chambers = json.load(f)
 
     print('total ', len(echo_chambers))
@@ -87,7 +89,7 @@ def diversity():
         diversity = entropy.eta(polars)
         echo_diversity[key] = diversity
 
-    dir_name = 'RetweetNew/'
+    dir_name = 'Retweet/'
     random_diversity = {}
    
     for key in postid.keys():
@@ -117,8 +119,21 @@ def diversity():
     box = BoxPlot(1)
     box.set_data([random_diversity.values(), echo_diversity.values()],'')
     box.set_xticks(['Random', 'Echo chamber'])
-    box.save_image('Image/diversity_box.png')
+    box.save_image('Image/diversity_box_%s.png'%index[1])
 
+
+def echo_chamber_diversity():
+    filename = 'Data/echo_chamber2_0_1.json'
+    diversity(filename)
+
+    filename = 'Data/echo_chamber2_1.json'
+    diversity(filename)
+    filename = 'Data/echo_chamber2.json'
+    diversity(filename)
+    filename = 'Data/echo_chamber2_m_1.json'
+    diversity(filename)
+    filename = 'Data/echo_chamber2_m_0_1.json'
+    diversity(filename)
 
 if __name__ == "__main__":
-    diversity()
+    echo_chamber_diversity()

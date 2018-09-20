@@ -43,6 +43,58 @@ def get_veracity(postid):
     sql_close(cursor, conn)
     return rs[0][0]
 
+#calculate subtree number of cascade. 
+#parent -> child propagate time 
+def sub_tree_num(tweets, root_tweet):
+    cascade = []
+    for tweet in tweets.values():
+        if tweet['origin_tweet'] == root_tweet:
+            tweet['sub_tree_confirm'] = False
+            tweet['sub_tree_num'] = 0
+            tweet['propagate_time'] = float('Inf')
+            cascade.append(tweet)
+            tweets[tweet['tweet']] = tweet
+
+
+    #print(len(cascade))
+    for item in cascade:
+        if item['child'] == 0 and item['sub_tree_confirm'] == False:
+            if item['parent_tweet'] != item['tweet']:
+                tweets[item['parent_tweet']]['sub_tree_num'] += 1
+            item['sub_tree_confirm'] = True
+
+    while(True):
+        count =0 
+        for item in cascade:
+            if item['sub_tree_confirm'] == True:
+                count +=1 
+
+        #all calculation done 
+        if count == len(cascade):
+            break
+ 
+   
+        for item in cascade:
+            if item['child'] != 0 and item['sub_tree_confirm'] == False and item['sub_tree_num'] != 0:
+                if item['parent_tweet'] != item['tweet']:
+                    tweets[item['parent_tweet']]['sub_tree_num'] += 1 + item['child']
+                item['sub_tree_confirm'] = True
+                item['propagate_time'] = propagate_time(tweets, item)
+    
+
+    
+def propagate_time(tweets, parent_tweet):
+    if parent_tweet['child'] == 0:
+        return flaot('Inf')
+    else:
+        children = []
+        for tweet in tweets.values():
+            if tweet['parent_tweet'] == parent_tweet['tweet'] and tweet['parent_tweet'] != tweet['tweet']:
+                children.append(parser.parse(tweet['time']))
+
+        return (min(children) - parser.parse(parent_tweet['time'])).total_seconds() / 60 # minutes 
+
+
 def update():
     """ Update retweet graph with 
         Cascade, Bot information
@@ -61,11 +113,13 @@ def update():
                 origin = tweet['origin_tweet']
                 cascade[postid][origin] = cascade[postid].get(origin, 0) + 1
                 parent_tweet = tweet['parent_tweet']
-                child[postid][parent_tweet] = child[postid].get(parent_tweet, 0) + 1 
+                if parent_tweet != tweet['tweet']:
+                    child[postid][parent_tweet] = child[postid].get(parent_tweet, 0) + 1 
 
     #update
     Bot = bot.load_bot()
     for postid in files:
+        unique_origin = {}
         with open(dir_name + postid, 'r') as f:
             tweets = json.load(f)
             #print(len(tweets))
@@ -74,11 +128,19 @@ def update():
                 tweet['cascade'] = cascade[postid][tweet['origin_tweet']]
                 tweet['bot'] = bot.check_bot(Bot, tweet['user'])
                 tweet['child'] = child[postid].get(tweet['tweet'], 0)
-        #print(postid)
+                unique_origin[tweet['origin_tweet']] = 1
+        print(postid)
+        print('unique root', len(unique_origin))
+        for key in unique_origin.keys():
+            #print(key)
+            sub_tree_num(tweets, key)
+    
+        #with open(postid, 'w') as f:
+        #    json.dump(tweets, f)
         with open(dir_name+postid, 'w') as f:
             json.dump(tweets, f)
-        print(postid)
-
+        #break
+    
 def time_series(veracity):
     total_users = {}
     timeseries_data = {}
@@ -264,7 +326,7 @@ def draw_graph():
 
     
 if __name__ == "__main__":
-    dir_name = 'RetweetNew/'
+    dir_name = 'Retweet/'
     files = os.listdir(dir_name)
    
     if len(sys.argv) >= 2:

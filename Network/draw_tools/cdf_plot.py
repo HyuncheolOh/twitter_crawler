@@ -93,6 +93,7 @@ class CDFPlot:
         # empirical 1-CDF (ccdf) as discussed
         # a quick way of computing a ccdf (valid for continuous data):
         sorted_vals = np.sort(data)
+        #print(sorted_vals)
         p = 1. * np.arange(len(data)) / (len(data) - 1)
         ax.plot(sorted_vals, p, label=label, linewidth = 2.0)
         

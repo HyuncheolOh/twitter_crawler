@@ -44,17 +44,30 @@ class BarPlot:
         plt.xticks(y_pos, ticks, rotation=rotation)
         self.ax.title.set_text(name)
         self.fig_num += 1
-    
+ 
+    def set_axvline(self, published_date):
+        plt.axvline(x=published_date, color='g', linestyle='--', linewidth=2)
+   
     def set_legends(self, legends, title=""):
         print(legends)
         plt.legend(legends, loc=1, title=title, fontsize=9)
 
     def set_label(self, x,y):
-        self.x_label = x
-        self.y_label = y
+        self.ax.set_xlabel(x);
+        self.ax.set_ylabel(y);
+
+    def set_ylog(self):
+        self.ax.set_yscale('symlog')
 
     def set_xticks(self, xticks):
         plt.xticks(np.arange(len(xticks)), xticks)
+
+    def set_x_bins(self, bins):
+        self.ax.locator_params(nbins=bins, axis='x')
+        #plt.locator_params(nbins=bins, axis='x')
+
+    def set_xticklabels(self, labels):
+        self.ax.set_xticklabels(labels)
 
     def set_ylim(self, value):
         self.ax.set_ylim(0, value)
