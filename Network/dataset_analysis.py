@@ -3,11 +3,13 @@ import os, sys, json
 import fileinput
 import bot_detect as bot
 import unicodecsv as csv
+import pandas as pd
 from dateutil import parser
 from tweet_parser.tweet import Tweet
 from tweet_parser.tweet_parser_errors import NotATweetError
 from draw_tools.cdf_plot import CDFPlot
 from draw_tools.ccdf_plot import CCDFPlot
+from draw_tools.bar_plot import BarPlot
 
 def sql_connect():
     conn = MySQLdb.connect(host="localhost", user="root", passwd="mmlab", db="fake_news", use_unicode=True, charset='utf8')
@@ -40,6 +42,29 @@ def get_veracity(postid):
     rs = cursor.fetchall()
     sql_close(cursor, conn)
     return rs[0][0], rs[0][1]
+
+def get_category(postid):
+    conn, cursor = sql_connect()
+    if int(postid) < 100000:
+    #factchecking
+        sql = """
+        SELECT category
+        FROM factchecking_data
+        WHERE id = %s
+        """
+
+    else:
+    #snopes
+        sql = """
+        SELECT category
+        FROM snopes_set
+        WHERE post_id = %s
+        """
+
+    cursor.execute(sql, [postid])
+    rs = cursor.fetchall()
+    sql_close(cursor, conn)
+    return rs[0][0]
 
 def screen_name(userid):
     dir_name = "Retweet/"
@@ -120,6 +145,114 @@ def retweet_graph_info(path):
     print("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s"%(postid,  c_num, max_cascade, screen_name(max_cascade_user),max_depth, screen_name(max_depth_user),max_breadth, screen_name(max_breadth_user), unique_users, veracity,   max(time.values()) - min(time.values()), cascade_period))
     cwriter.writerow([postid, len(tweets), max_cascade, max_depth, max_breadth, c_num, unique_users, veracity, screen_name(max_cascade_user), screen_name(max_depth_user), screen_name(max_breadth_user), max(time.values()) - min(time.values()), cascade_period])
 
+
+#echo chamber characteristics 
+#number of echo chambers in a rumor 
+#number of users in an echo chamber 2, 3, 4 
+#polarity scores 
+def echo_chamber_statistics():
+    with open('Data/echo_chamber2.json') as f:
+        echo_chamber = json.load(f)
+
+    echo_chamber_num = {} 
+    unique_user = {}
+    unique_user_per_cascade = {}
+    for key in echo_chamber:
+        users = echo_chamber[key]
+
+        if len(users) < 2:
+            continue 
+
+        postids = key.split('_')
+        for postid in postids:
+            if unique_user.get(postid, -1) == -1:
+                unique_user[postid] = {}
+
+            echo_chamber_num[postid] = echo_chamber_num.get(postid, 0) + 1
+
+            for user in users:
+                unique_user[postid][user] = 1
+
+    for postid in unique_user.keys():
+        users = unique_user[postid]
+
+        with open('Retweet/%s'%postid, 'r') as f:
+            tweets = json.load(f)
+
+        for tweet in tweets.values():
+            if tweet['user'] in users:
+                unique_user_per_cascade[tweet['origin_tweet']] = unique_user_per_cascade.get(tweet['origin_tweet'], [])
+                unique_user_per_cascade[tweet['origin_tweet']].append(tweet['user'])
+
+
+    #for postid in unique_user.keys():
+    #    print(postid, echo_chamber_num[postid], len(unique_user[postid]))
+    users = [len(unique_user[postid]) for postid in unique_user.keys()]
+    echo_num = [echo_chamber_num[postid] for postid in unique_user.keys()]
+    users_cascade = [len(item) for item in unique_user_per_cascade.values()]
+
+    print('users')
+    print(pd.Series(users).describe())
+    print('users cascade')
+    print(pd.Series(users_cascade).describe())
+    print('echo numbers')
+    print(pd.Series(echo_num).describe())
+    draw_cdf_plot([users], 'Number of Users', ['Echo Chamber'], '', 'echo_chamber_statistics_user_num_rumor')
+    draw_cdf_plot([users_cascade], 'Number of Users', ['Echo Chamber'], '', 'echo_chamber_statistics_user_num_cascade')
+    draw_cdf_plot([echo_num], 'Number of Echo Chambers', ['Echo Chamber'], '', 'echo_chamber_statistics_echo_num')
+    
+
+def draw_cdf_plot(datas, datatype, legend, legend_type, filename):
+    cdf = CDFPlot()
+    cdf.set_label(datatype, 'CDF')
+    cdf.set_log(True)
+    for i in range(len(datas)):
+        cdf.set_data(datas[i], legend[i])
+    cdf.set_legends(legend, legend_type)
+    cdf.save_image('Image/20180927/%s.png'%filename)
+
+def category_analysis():
+    dirname = 'Retweet'
+    files = os.listdir(dirname)
+    categories = []
+    titles = []
+    for postid in files:
+        categories.append(get_category(postid))
+        _, title = get_veracity(postid)
+        titles.append(title)
+        #print(postid, get_category(postid))
+
+    #bar chart?
+    #print(categories)
+    c_set = set(categories)
+    category_num = []
+    for item in c_set:
+        category_num.append(categories.count(item))
+        print(item, categories.count(item))
+    #show distribution with bar plot
+    barplot = BarPlot(1)
+    barplot.set_data(c_set, category_num, 'Categories', 'vertical')
+    barplot.set_ylim(80)
+    barplot.save_image('Image/20180928/categories_bar.png')
+    #show politics and non-politics 
+    Politics = ['Politics', 'Politicians'] 
+    Other = ['Fake News', 'Fauxtography']
+
+    p_count = 0
+    np_count = 0 
+    o_count = 0
+    for item in categories:
+        #print(item)
+        if item in Politics:
+            p_count += 1 
+        elif item in Other:
+            o_count += 1
+        else : 
+            np_count += 1
+
+    print("Politics : %s, Non-Politics : %s"%(p_count, np_count))
+
+
 def draw_graph():
     #user participation
     user_part_num = [len(rumor_num) for rumor_num in user_participation.values()]
@@ -144,13 +277,14 @@ def analysis():
     print("Veracity : True, False, Mixture, Mostly True, Mostly False")
     print("At least 100 tweets collected since Mar. 2018")
     print("Number of rumors : %s / %s"%(len(rumors), len(files)))
-    users, cascade, = tweet_anlysis()
-    print("Unique users : %s"%users)
-    print("Number of cascades : %s"%cascade)
+    #users, cascade, = tweet_anlysis()
+    #print("Unique users : %s"%users)
+    #print("Number of cascades : %s"%cascade)
 
     #draw_graph()
-    print("User participation CDF saved. /Image/user_participation_cdf.png")
-    
+    #print("User participation CDF saved. /Image/user_participation_cdf.png")
+    category_analysis()
+    #echo_chamber_statistics()
 
 if __name__ == "__main__":
     f = open('Data/rumors.csv', 'w')

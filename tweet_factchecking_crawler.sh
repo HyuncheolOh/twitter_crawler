@@ -12,7 +12,8 @@ do
 	timestamp=`date +%Y%m%d%H%M`
 	echo "$timestamp"
 	echo "done"
-
+	
+	./follower_run.sh
 	#repeat update per day
 	sleep 86400
 done
