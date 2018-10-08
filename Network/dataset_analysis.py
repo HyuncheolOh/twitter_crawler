@@ -277,9 +277,9 @@ def analysis():
     print("Veracity : True, False, Mixture, Mostly True, Mostly False")
     print("At least 100 tweets collected since Mar. 2018")
     print("Number of rumors : %s / %s"%(len(rumors), len(files)))
-    #users, cascade, = tweet_anlysis()
-    #print("Unique users : %s"%users)
-    #print("Number of cascades : %s"%cascade)
+    users, cascade, = tweet_anlysis()
+    print("Unique users : %s"%users)
+    print("Number of cascades : %s"%cascade)
 
     #draw_graph()
     #print("User participation CDF saved. /Image/user_participation_cdf.png")

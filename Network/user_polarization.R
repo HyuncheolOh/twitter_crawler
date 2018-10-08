@@ -25,8 +25,8 @@ results <- estimateIdeology2(user, friends)
 
 #read all files from PolarFriends folder
 
-inputdir = 'PolarFriendsNew/'
-outputdir = 'PolarResult/'
+inputdir = 'PolarFriends/'
+outputdir = 'PolarUser/'
 
 files = list.files(path=inputdir, pattern = NULL)
 

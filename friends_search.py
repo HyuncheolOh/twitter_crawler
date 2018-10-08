@@ -119,8 +119,7 @@ if __name__ == '__main__':
         #get user list 
         f = open(os.path.join(dirname, post_id))
         lines = f.readlines()
-        friend_list = None
-        friends_data = {}
+        f.close()
         list_path = './Data/friends/list.json'
 #        friends_path = './Data/friends/%s'%post_id
 #        friends_all_path = './Data/friends/all.json'
@@ -133,15 +132,6 @@ if __name__ == '__main__':
         if result == "False":
             continue
 
-        if not os.path.exists(list_path):
-            friend_list = {}
-#        else :
-#            friend_list = json.load(open(list_path))
-
-#        if not os.path.exists(friends_all_path):
-#            friends_data = {}
-#        else : 
-#            friends_data = json.load(open(friends_all_path))
         shuffle(lines)
         for line in lines:
             #print(line)
@@ -162,7 +152,6 @@ if __name__ == '__main__':
             friends = []
             if int(friends_count) == 0 :
                 print("friends count is zero")
-#                friend_list[user_id] = 0
             else:
     
                 friends = get_friends(api, screen_name)
@@ -172,15 +161,11 @@ if __name__ == '__main__':
                     print("change access token and load_api again")
                     api = load_api()
                     continue
-#                friend_list[user_id] = len(friends)
-                #friends_data[user_id] = friends
                     
             friends_path = './Data/friends/friends/%s'%user_id
             with open(friends_path, 'w') as f:
                 json.dump(friends, f)
 
- #           with open(list_path, 'w') as f:
- #               json.dump(friend_list, f)
 
        
 

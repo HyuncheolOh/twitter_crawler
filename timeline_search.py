@@ -71,16 +71,28 @@ def get_json_info(tweet):
     d['entities'] = tweet._json['entities']
     d['created_at'] = tweet._json['created_at']
     d['user'] = {}
-    d['user']['entities'] = tweet._json['user']['entities']
     d['user']['screen_name'] = tweet._json['user']['screen_name']
+    d['user']['id_str'] = tweet._json['user']['id_str']
     d['text'] = tweet._json['text']
-    d['retweeted_status'] = {}
-    try:
-        d['retweeted_status']['entities'] = tweet._json['retweeted_status']['entities']
+    
+    if tweet._json.get('retweeted_status', None) != None:
+        d['retweeted_status'] = {}
         d['retweeted_status']['user'] = {}
-        d['retweeted_status']['user']['entities'] = tweet._json['retweeted_status']['user']['entities']
-    except KeyError as e:
-        pass
+        d['retweeted_status']['user']['screen_name']= tweet._json['retweeted_status']['user']['screen_name']
+        d['retweeted_status']['user']['id_str']= tweet._json['retweeted_status']['user']['id_str']
+        d['retweeted_status']['entities'] = {} 
+        d['retweeted_status']['entities']['urls'] = tweet._json['retweeted_status']['entities']['urls']
+        d['retweeted_status']['created_at'] = tweet._json['retweeted_status']['created_at']
+
+    if tweet._json.get('quoted_status', None) != None: 
+        d['quoted_status'] = {}
+        d['quoted_status']['user'] = {}
+        d['quoted_status']['user']['screen_name'] = tweet._json['quoted_status']['user']['screen_name']
+        d['quoted_status']['user']['id_str'] = tweet._json['quoted_status']['user']['id_str']
+        d['quoted_status']['entities'] = {}
+        d['quoted_status']['entities']['urls'] = tweet._json['quoted_status']['entities']['urls']
+        d['quoted_status']['created_at'] = tweet._json['quoted_status']['created_at']
+    
 
     return d
 
@@ -99,14 +111,14 @@ def get_all_tweets(userid, screen_name):
     except BaseException as e:
         print(userid, screen_name, e)
  #   except tweepy.error.TweepError as e:
-        with open('./Timeline_New/%s'%userid, 'w') as f:
+        with open('./Timeline/%s'%userid, 'w') as f:
             json.dump([], f)
 
         return None
     
     alltweets.extend(new_tweets)
     if len(alltweets) == 0:
-        with open('./Timeline_New/%s'%userid, 'w') as f:
+        with open('./Timeline/%s'%userid, 'w') as f:
             json.dump([], f)
         return
  
@@ -130,7 +142,6 @@ def get_all_tweets(userid, screen_name):
             break
     print(userid, screen_name, len(alltweets))
     #save most recent tweets
-   
    
     #transform the tweepy tweets into a 2D array that will populate the csv	| you can comment out data you don't need
            
@@ -158,28 +169,29 @@ def get_all_tweets(userid, screen_name):
             writer.writerows(outtweets)
     '''
     outtweets = [get_json_info(tweet) for tweet in alltweets]
-    with open('./Timeline_New/%s'%userid, 'w') as f:
+    with open('./Timeline/%s'%userid, 'w') as f:
         json.dump(outtweets, f)
 
     pass
 
 def get_all_users():
     
-    dirname = './Network/Retweet/'
+    dirname = './Network/RetweetNew/'
     files = os.listdir(dirname)
     d = {}
     for postid in files:
         path = dirname + postid
         with open(path, 'r') as f:
-            users = json.load(f)
+            tweets = json.load(f)
 
-            for user in users.keys():
-                d[user] = users[user]['screen_name']
+            for tid in tweets.keys():
+                user = tweets[tid]['user']
+                d[user] = tweets[tid]['screen_name']
 
     return d
 
 def is_timeline_exist(userid):
-    path = './Timeline_New/%s'%userid
+    path = './Timeline/%s'%userid
     return os.path.exists(path)
 
 
@@ -195,11 +207,11 @@ if __name__ == '__main__':
     users = get_all_users()
     user_keys = users.keys()
     shuffle(user_keys)
-    get_all_tweets('aaaaaaaaaaaaaa', 'gamva2')
+    #get_all_tweets('aaaaaaaaaaaaaa', 'gamva2')
 
-    #for userid in user_keys:
-    #    if not is_timeline_exist(userid):
-    #        get_all_tweets(userid, users[userid])
+    for userid in user_keys:
+        if not is_timeline_exist(userid):
+            get_all_tweets(userid, users[userid])
 
 
 

@@ -38,7 +38,7 @@ def convert_json_csv():
     
     dir_name = "../Data/"
     
-    files = os.listdir('Retweet')
+    files = os.listdir('RetweetNew')
     
     for postid in files:
         if os.path.exists(filename + postid):

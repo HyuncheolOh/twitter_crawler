@@ -11,6 +11,7 @@ import tweepy
 import csv
 from tweepy import OAuthHandler
 from time import sleep
+from random import shuffle
 import veracity_check as vc
 
 #-----------------------------------------------------------------------
@@ -19,7 +20,7 @@ import veracity_check as vc
 config = {}
 execfile("config.py", config)
 token_list = []
-key_num = 7 
+key_num = 1 
 #-----------------------------------------------------------------------
 # load developer key list 
 #-----------------------------------------------------------------------
@@ -111,7 +112,7 @@ if __name__ == '__main__':
     files  = os.listdir(dirname)
     load_key_list()
     api = load_api()
-    files.reverse()
+    shuffle(files)
     for post_id in files:
        
         if post_id == "friends" or post_id == "followers":
@@ -119,8 +120,7 @@ if __name__ == '__main__':
         #get user list 
         f = open(os.path.join(dirname, post_id))
         lines = f.readlines()
-        friend_list = None
-        friends_data = {}
+        f.close()
         list_path = './Data/friends/list.json'
 #        friends_path = './Data/friends/%s'%post_id
 #        friends_all_path = './Data/friends/all.json'
@@ -129,21 +129,12 @@ if __name__ == '__main__':
             os.makedirs('./Data/friends')
         pid = post_id.replace(".json", "")
         result = vc.check_veracity(pid)
-        print("%s : %s"%(pid, result))
         if result == "False":
             continue
 
 
-        if not os.path.exists(list_path):
-            friend_list = {}
-        #else :
-        #    friend_list = json.load(open(list_path))
 
-#        if not os.path.exists(friends_all_path):
-#            friends_data = {}
-#        else : 
-#            friends_data = json.load(open(friends_all_path))
-
+        shuffle(lines)
         for line in lines:
             #print(line)
             tweet = json.loads(line)
@@ -153,7 +144,12 @@ if __name__ == '__main__':
             followers_count = None
             friends_count = None
             try:
-                retweet = tweet['retweeted_status']
+                retweet = tweet.get('retweeted_status', None)
+                if retweet == None:
+                    retweet = tweet.get('quoted_status', None)
+
+                if retweet == None:
+                    continue
                 user = retweet['user']
                 user_id = user['id_str']
                 screen_name = user['screen_name']
@@ -164,7 +160,6 @@ if __name__ == '__main__':
                 continue
 
             #if friends check already done
-            #if user_id in friend_list:
             #    continue
             friends_path = './Data/friends/friends/%s'%user_id
             if os.path.isfile(friends_path):
@@ -175,7 +170,6 @@ if __name__ == '__main__':
             friends = []
             if int(friends_count) == 0 :
                 print("friends count is zero")
-                #friend_list[user_id] = 0
             else:
     
                 friends = get_friends(api, screen_name)
@@ -185,15 +179,11 @@ if __name__ == '__main__':
                     print("change access token and load_api again")
                     api = load_api()
                     continue
-                #friend_list[user_id] = len(friends)
-                #friends_data[user_id] = friends
                     
             friends_path = './Data/friends/friends/%s'%user_id
             with open(friends_path, 'w') as f:
                 json.dump(friends, f)
 
-            #with open(list_path, 'w') as f:
-                #json.dump(friend_list, f)
 
        
 

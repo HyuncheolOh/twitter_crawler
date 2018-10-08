@@ -5,8 +5,10 @@ import numpy as np
 import random
 import itertools
 import bot_detect as bot
+import util
 from time import time 
 from draw_tools.cdf_plot import CDFPlot
+from draw_tools.ccdf_plot import CCDFPlot
 
 def sql_connect():
     conn = MySQLdb.connect(host="localhost", user="root", passwd="mmlab", db="fake_news", use_unicode=True, charset='utf8')
@@ -289,109 +291,6 @@ def get_random_user(users):
 
     return user1, user2 
     
-#find mutual follower or have common friends 
-def following_anlysis():
-
-    friends_dir = '../Data/friends/friends/'
-    with open('Data/echo_chamber2.json') as f:
-        echo_chambers = json.load(f)
-
-
-    print('total ', len(echo_chambers))
-    friends_cache = {}
-    comm_friends_count = {}
-    postid = {}
-    count = 0
-    for key in echo_chambers:
-        #print(key)
-        users = echo_chambers[key]
-        #print(users)
-        postids = key.split('_')
-        postid[key] = 1
-        
-        count += 1 
-        if count % 100 == 0:
-            #print(count)
-            print(count)
-            #break
-        #print('echo chamber users', len(users))
-        if len(users) < 2:
-            continue
-
-       
-        comm_friends = []
-        for i in range(len(users)):
-            user1 = users[i]
-            
-            if friends_cache.get(user1, -1) == -1:
-                with open(friends_dir + user1, 'r') as f:
-                    user_friends1 = json.load(f)
-                    friends_cache[user1] = user_friends1
-            else:
-                user_friends1 = friends_cache[user1]
-
-            for j in range(i+1, len(users)):
-                user2 = users[j]
-
-                if friends_cache.get(user2, -1) == -1:
-                    with open(friends_dir + user2, 'r') as f:
-                        user_friends2 = json.load(f)
-                        friends_cache[user2] = user_friends2
-                else:
-                    user_friends2 = friends_cache[user2]
-
-                common_friends = set(user_friends1) & set(user_friends2)
-                comm_friends.append(len(common_friends))
-            #print(comm_friends)
-            comm_friends_count[key] = comm_friends
-    print(len(comm_friends_count))
-    print(len(postid))
-    dir_name = 'Retweet/'
-    random_friends_count = {}
-    for key in postid.keys():
-        user_num = len(comm_friends_count[key])
-        pids = key.split(',')
-        
-        for postid in pids:
-            r_comm_friends = []
-            for _ in range(user_num):
-                with open(dir_name + postid, 'r') as f:
-                    tweets = json.load(f)
-                users = [tweet['user'] for tweet in tweets]
-                user1, user2 = get_random_user(users)
-                if friends_cache.get(user1, -1) == -1:
-                    with open(friends_dir + user1, 'r') as f:
-                        user_friends1 = json.load(f)
-                        friends_cache[user1] = user_friends1
-                else:
-                    user_friends1 = friends_cache[user1]
-
-                if friends_cache.get(user2, -1) == -1:
-                    with open(friends_dir + user2, 'r') as f:
-                        user_friends2 = json.load(f)
-                        friends_cache[user2] = user_friends2
-                else:
-                    user_friends2 = friends_cache[user2]
-                
-                common_friends = set(user_friends1) & set(user_friends2)
-                r_comm_friends.append(len(common_friends))
-        random_friends_count[key] = r_comm_friends
-
-    with open('Data/comm_friends.json', 'w') as f:
-        json.dump({'echo_chamber':comm_friends_count, 'random':random_friends_count}, f)
-
-    """
-    #child
-    cdf = CDFPlot()
-    cdf.set_data(child_all, 'all')
-    cdf.set_label('Friends', 'CDF')
-    cdf.set_log(True)
-    cdf.set_data(echo_child_all, 'echo chamber')
-    cdf.set_legends(['random', 'echo chamber'], 'user type')
-    cdf.save_image('Image/echochamber_friends_cdf.png')
-    """
-    return echo_child_all
-
 def sub_tree_num(tweets, root_tweet):
     cascade = []
     for tweet in tweets.values():
@@ -437,18 +336,15 @@ def child_speed(tweets, parent_tweet):
 
         return (min(children) - parser.parse(parent_tweet['time'])).total_seconds() / 60 # minutes 
 
-#analyze cascades which have echo chambers or not
-
-def echo_chamber_cascade_analysis(veracity=None):
-    #get all echo chamber users per postid
-    file_name = 'Data/echo_chamber2.json'
+#get all echo chamber users per postid
+def get_echo_chamber_users(file_name):
+    #file_name = 'Data/echo_chamber2.json'
     with open(file_name) as f:
         echo_chambers = json.load(f)
 
     Bot = bot.load_bot()
-    cascade_breadth, cascade_max_depth, cascade_unique_users = get_cascade_max_breadth()
-
     echo_chamber_users = {}
+    count = 0
     for key in echo_chambers:
         #print(key)
         users = echo_chambers[key]
@@ -461,6 +357,23 @@ def echo_chamber_cascade_analysis(veracity=None):
                 if bot.check_bot(Bot, user) == 0:
                     echo_chamber_users[postid] = echo_chamber_users.get(postid, {})
                     echo_chamber_users[postid][user] = 1
+        count += 1
+
+    print('echo chamber size %s'%count)
+    return echo_chamber_users
+
+
+#cascade : origin tweet for echo chamber user participated or not participated 
+def echo_chamber_cascade_analysis(file_name, veracity=None):
+    #get all echo chamber users per postid
+    #file_name = 'Data/echo_chamber2.json'
+    with open(file_name) as f:
+        echo_chambers = json.load(f)
+
+    Bot = bot.load_bot()
+    cascade_breadth, cascade_max_depth, cascade_unique_users = get_cascade_max_breadth()
+
+    echo_chamber_users = get_echo_chamber_users(file_name)
     ccc = 0
     echo_chamber_values = {}
     non_echo_chamber_values = {} 
@@ -502,8 +415,8 @@ def echo_chamber_cascade_analysis(veracity=None):
 
         #non echo chamber cascade which do not contain origin tweet of echo chamber 
         for tweet in tweets.values():
-            if bot.check_bot(Bot, user) != 0:
-                continue
+            #if bot.check_bot(Bot, user) != 0:
+            #    continue
             origin_tweet = tweet['origin_tweet']
             if not origin_tweet in echo_chamber_origin.keys():
                 non_echo_chamber_values['max_depth'][origin_tweet] = cascade_max_depth[origin_tweet]
@@ -516,8 +429,143 @@ def echo_chamber_cascade_analysis(veracity=None):
         #if ccc > 5:
         #    break
     
+
     return echo_chamber_values, non_echo_chamber_values
-    
+
+def echo_chamber_political_cascade_analysis(veracity=None):
+    #get all echo chamber users per postid
+    file_name = 'Data/echo_chamber2.json'
+    Bot = bot.load_bot()
+    cascade_breadth, cascade_max_depth, cascade_unique_users = get_cascade_max_breadth()
+    echo_chamber_users = get_echo_chamber_users(file_name)
+
+    ccc = 0
+    echo_chamber_values = {}
+    non_echo_chamber_values = {} 
+    politics = {}
+    non_politics = {}
+    p_e = {}; p_ne = {}; np_e = {}; np_ne = {}; #political echo chamber, non echo chamber / non political echo chamber, non echo chamber 
+    depth = {}; child = {}; cascade = {}; subtree = {}; breadth = {}; propagate_time = {};
+    characteristics = ['max_depth', 'max_breadth', 'cascade', 'unique_users']
+    for item in characteristics:
+        echo_chamber_values[item] = {}
+        non_echo_chamber_values[item] = {}
+        politics[item] = {}
+        non_politics[item] = {}
+        p_e[item] = {}
+        p_ne[item] = {}
+        np_e[item] = {}
+        np_ne[item] = {}
+
+    dir_name = 'Retweet/'
+   
+    for postid in echo_chamber_users.keys():
+        users = echo_chamber_users[postid].keys()
+        echo_chamber_values[postid] = {}
+        non_echo_chamber_values = {} 
+        if len(users) == 0:
+            continue
+
+        with open(dir_name + postid, 'r') as f:
+            tweets = json.load(f)
+
+        #find cascade information
+        unique_users = {}
+        unique_tweets = {}
+        max_depth = 0
+
+        if veracity != None:
+            if not get_veracity(postid, veracity):
+                continue
+        print(postid, 'echo chamber users : %s'%len(users))
+
+        max_depth = {}; cascade = {}; max_breadth = {}; unique_users = {};
+        e_max_depth = {}; e_cascade = {}; e_max_breadth = {}; e_unique_users = {};
+        ne_max_depth = {}; ne_cascade = {}; ne_max_breadth = {}; ne_unique_users = {};
+        for tweet in tweets.values():
+            origin_tweet = tweet['origin_tweet']
+            max_depth[origin_tweet] = cascade_max_depth[origin_tweet]
+            cascade[origin_tweet] = tweet['cascade']
+            max_breadth[origin_tweet] = cascade_breadth[origin_tweet]
+            unique_users[origin_tweet] = cascade_unique_users[origin_tweet]
+
+        echo_chamber_origin = {}
+        for tweet in tweets.values():
+            if tweet['user'] in users:
+                origin_tweet = tweet['origin_tweet']
+                echo_chamber_origin[origin_tweet] = 1
+                e_max_depth[origin_tweet] = cascade_max_depth[origin_tweet]
+                e_cascade[origin_tweet] = tweet['cascade']
+                e_max_breadth[origin_tweet] = cascade_breadth[origin_tweet]
+                e_unique_users[origin_tweet] = cascade_unique_users[origin_tweet]
+
+        #non echo chamber cascade which do not contain origin tweet of echo chamber 
+        for tweet in tweets.values():
+            origin_tweet = tweet['origin_tweet']
+            if not origin_tweet in echo_chamber_origin.keys():
+                ne_max_depth[origin_tweet] = cascade_max_depth[origin_tweet]
+                ne_cascade[origin_tweet] = tweet['cascade']
+                ne_max_breadth[origin_tweet] = cascade_breadth[origin_tweet]
+                ne_unique_users[origin_tweet] = cascade_unique_users[origin_tweet]
+
+        if util.is_politics(postid):
+            politics['max_depth'].update(max_depth)
+            politics['max_breadth'].update(max_breadth)
+            politics['cascade'].update(cascade)
+            politics['unique_users'].update(unique_users)
+            p_e['max_depth'].update(e_max_depth)
+            p_e['max_breadth'].update(e_max_breadth)
+            p_e['cascade'].update(e_cascade)
+            p_e['unique_users'].update(e_unique_users)
+            p_ne['max_depth'].update(ne_max_depth)
+            p_ne['max_breadth'].update(ne_max_breadth)
+            p_ne['cascade'].update(ne_cascade)
+            p_ne['unique_users'].update(ne_unique_users)
+
+        elif util.is_non_politics(postid):
+            non_politics['max_depth'].update(max_depth)
+            non_politics['max_breadth'].update(max_breadth)
+            non_politics['cascade'].update(cascade)
+            non_politics['unique_users'].update(unique_users)
+            np_e['max_depth'].update(e_max_depth)
+            np_e['max_breadth'].update(e_max_breadth)
+            np_e['cascade'].update(e_cascade)
+            np_e['unique_users'].update(e_unique_users)
+            np_ne['max_depth'].update(ne_max_depth)
+            np_ne['max_breadth'].update(ne_max_breadth)
+            np_ne['cascade'].update(ne_cascade)
+            np_ne['unique_users'].update(ne_unique_users)
+
+    print(len(politics['max_depth']))
+    print(len(non_politics['max_depth']))
+    #political vs. non-political
+    draw_cdf_plot([politics['max_depth'].values(), non_politics['max_depth'].values()], 'Depth',['Politics', 'Non Politics'], 'Category', 'Image/20180930/politic_depth') 
+    draw_cdf_plot([politics['max_breadth'].values(), non_politics['max_breadth'].values()], 'Breadth',['Politics', 'Non Politics'], 'Category', 'Image/20180930/politic_breadth') 
+    draw_cdf_plot([politics['cascade'].values(), non_politics['cascade'].values()], 'Cascade',['Politics', 'Non Politics'], 'Category', 'Image/20180930/politic_cascade') 
+    draw_cdf_plot([politics['unique_users'].values(), non_politics['unique_users'].values()], 'Number of users',['Politics', 'Non Politics'], 'Category', 'Image/20180930/politic_unique_users') 
+
+    #ccdf for political vs. non-political
+    draw_ccdf_plot([politics['max_depth'].values(), non_politics['max_depth'].values()], 'Depth',['Politics', 'Non Politics'], 'Category', 'Image/20180930/politic_depth_ccdf') 
+    draw_ccdf_plot([politics['max_breadth'].values(), non_politics['max_breadth'].values()], 'Breadth',['Politics', 'Non Politics'], 'Category', 'Image/20180930/politic_breadth_ccdf') 
+    draw_ccdf_plot([politics['cascade'].values(), non_politics['cascade'].values()], 'Cascade',['Politics', 'Non Politics'], 'Category', 'Image/20180930/politic_cascade_ccdf') 
+    draw_ccdf_plot([politics['unique_users'].values(), non_politics['unique_users'].values()], 'Number of users',['Politics', 'Non Politics'], 'Category', 'Image/20180930/politic_unique_users_ccdf') 
+
+
+
+    #political echo vs. non echo 
+    draw_cdf_plot([p_e['max_depth'].values(), p_ne['max_depth'].values()], 'Depth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/20180930/politic_depth_e') 
+    draw_cdf_plot([p_e['max_breadth'].values(), p_ne['max_breadth'].values()], 'Breadth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/20180930/politic_breadth_e') 
+    draw_cdf_plot([p_e['cascade'].values(), p_ne['cascade'].values()], 'Cascade',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/20180930/politic_cascade_e') 
+    draw_cdf_plot([p_e['unique_users'].values(), p_ne['unique_users'].values()], 'Number of users',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/20180930/politic_unique_users_e') 
+
+    #non political echo vs. non echo 
+    draw_cdf_plot([np_e['max_depth'].values(), np_ne['max_depth'].values()], 'Depth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/20180930/politic_depth_e2') 
+    draw_cdf_plot([np_e['max_breadth'].values(), np_ne['max_breadth'].values()], 'Breadth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/20180930/politic_breadth_e2') 
+    draw_cdf_plot([np_e['cascade'].values(), np_ne['cascade'].values()], 'Cascade',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/20180930/politic_cascade_e2') 
+    draw_cdf_plot([np_e['unique_users'].values(), np_ne['unique_users'].values()], 'Number of users',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/20180930/politic_unique_users_e2') 
+
+#    return politics, non_politics
+
 def draw_echo_chamber_cascade_chracteristics():
     '''
     echo_chamber_values1, _ = echo_chamber_cascade_analysis('True')
@@ -529,11 +577,31 @@ def draw_echo_chamber_cascade_chracteristics():
     draw_cdf_plot([echo_chamber_values1['cascade'].values(), echo_chamber_values2['cascade'].values(), echo_chamber_values3['cascade'].values()], 'Cascade',['True', 'False', 'Mixed'], 'Veracity','Image/20180919/echo_cascade_veracity') 
     draw_cdf_plot([echo_chamber_values1['unique_users'].values(), echo_chamber_values2['unique_users'].values(), echo_chamber_values3['unique_users'].values()], 'Numberof Users',['True', 'False', 'Mixed'], 'Veracity','Image/20180919/echo_users_veracity') 
     '''
-    echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis()
-    draw_cdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',['Echo Chamber', 'No Echo Chamber'], 'User Type', 'Image/20180919/echo_depth2') 
-    draw_cdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',['Echo Chamber', 'No Echo Chamber'], 'User Type', 'Image/20180919/echo_breadth2') 
-    draw_cdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',['Echo Chamber', 'No Echo Chamber'], 'User Type', 'Image/20180919/echo_cascade2') 
-    draw_cdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',['Echo Chamber', 'No Echo Chamber'], 'User Type', 'Image/20180919/echo_unique_users2') 
+    
+    #echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber2.json')
+    #draw_cdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',['Echo Chamber', 'No Echo Chamber'], 'User Type', 'Image/20180919/echo_depth2') 
+    #draw_cdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',['Echo Chamber', 'No Echo Chamber'], 'User Type', 'Image/20180919/echo_breadth2') 
+    #draw_cdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',['Echo Chamber', 'No Echo Chamber'], 'User Type', 'Image/20180919/echo_cascade2') 
+    #draw_cdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',['Echo Chamber', 'No Echo Chamber'], 'User Type', 'Image/20180919/echo_unique_users2') 
+
+
+    start_time = time()
+    echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber2.json')
+    end_time = time()
+    print('echo chamber2 takes %s'%(end_time - start_time))
+    start_time = time()
+    echo_chamber_values2, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber3.json')
+    end_time = time()
+    print('echo chamber3 takes %s'%(end_time - start_time))
+    start_time = time()
+    echo_chamber_values3, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber4.json')
+    end_time = time()
+    print('echo chamber4 takes %s'%(end_time - start_time))
+
+    draw_cdf_plot([echo_chamber_values['max_depth'].values(), echo_chamber_values2['max_depth'].values(), echo_chamber_values3['max_depth'].values()], 'Depth',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/20180930/echo_depth2') 
+    draw_cdf_plot([echo_chamber_values['max_breadth'].values(), echo_chamber_values2['max_breadth'].values(), echo_chamber_values3['max_breadth'].values()], 'Breadth',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/20180930/echo_breadth2') 
+    draw_cdf_plot([echo_chamber_values['cascade'].values(), echo_chamber_values2['cascade'].values(), echo_chamber_values3['cascade'].values()], 'Cascade',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/20180930/echo_cascade2') 
+    draw_cdf_plot([echo_chamber_values['unique_users'].values(), echo_chamber_values2['unique_users'].values(), echo_chamber_values3['unique_users'].values()], 'Number of users',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/20180930/echo_unique_users2') 
 
 
 
@@ -660,6 +728,7 @@ def echo_chamber_user_analysis():
     #with open('Data/echo_chamber_user.json', 'w') as f:
         #json.dump({'all':{'depth':all_depth, 'child':all_child, 'sub_tree':all_sub_tree, 'propagation_time' : all_propagation_time, 'cascade':all_cascade}, 'echo':{'depth':echo_depth, 'child':echo_child, 'sub_tree':echo_sub_tree, 'propagation_time':echo_propagation_time, 'cascade':echo_cascade}}, f)
 
+#draw graph from saved data
 def draw_echo_chamber_user_characteristics():
     with open('Data/echo_chamber_user.json', 'r') as f:
         data = json.load(f)
@@ -736,25 +805,13 @@ def draw_echo_chamber_user_analysis():
                 m_s.append(row[7])
                 m_p.append(float(row[8]))
 
-        #draw_cdf_plot(all_depth, echo_depth, 'Depth', 'All', 'Echo', 'Image/20180919/depth')
-        #draw_cdf_plot(all_child, echo_child, 'Child', 'All', 'Echo', 'Image/20180919/child')
-        #draw_cdf_plot(all_sub_tree, echo_sub_tree, 'Sub Tree Size', 'All', 'Echo', 'Image/20180919/sub_tree')
-        #draw_cdf_plot(all_propagation_time, echo_propagation_time, 'Propagation Time', 'All', 'Echo', 'Image/20180919/propagation_time')
-
         draw_cdf_plot(t_d, f_d, m_d, 'Depth', ['True', 'False','Mixed'], 'Image/20180919/depth_veracity')
         draw_cdf_plot(t_c, f_c, m_c, 'Child', ['True', 'False','Mixed'], 'Image/20180919/child_veracity')
         draw_cdf_plot(t_s, f_s, m_s, 'Sub Tree Size', ['True', 'False','Mixed'], 'Image/20180919/sub_tree_veracity')
         draw_cdf_plot(t_p, f_p, m_p, 'Propagation Time', ['True', 'False','Mixed'], 'Image/20180919/propagation_time_veracity')
 
-def draw_cdf_plot(datas, datatype, legend, legend_type, filename):
-    cdf = CDFPlot()
-    cdf.set_label(datatype, 'CDF')
-    cdf.set_log(True)
-    for i in range(len(datas)):
-        cdf.set_data(datas[i], legend[i])
-    if len(legend) > 1:
-        cdf.set_legends(legend, legend_type)
-    cdf.save_image('%s.png'%filename)
+
+
 
 #how many users in echo chamber - distribution
 def statistics(filename):
@@ -785,7 +842,9 @@ def draw_statistics():
 
     #draw_cdf_plot([user2, user3, user4, user5], 'Number of Users', ['2', '3', '4', '5'], 'Echo Chamber', 'Image/20180920/echo_chamber_statistics')
     draw_cdf_plot([user2, user3, user4], 'Number of Users', ['2', '3', '4'], 'Echo Chamber', 'Image/20180920/echo_chamber_statistics')
-    
+   
+
+#show echo chamber users get information from whom  (echo chamber or non echo chamber user)
 def propagation_within_echo_chamber():
     filename = 'Data/echo_chamber2.json'
     with open(filename, 'r') as f:
@@ -798,66 +857,15 @@ def propagation_within_echo_chamber():
     cascade_path = {}
     cascade_node = {} #echo chamber node count in a cascade
     cascade_depth = {}
-    ccc = 0
-    """
-    echo_chamber_users = {}
-    for key in echo_chambers:
-        #print(key)
-        users = echo_chambers[key]
+   
+    #non echo chamber 
+    ne_cascade_path = {}
+    ne_cascade_node = {} 
+    ne_cascade_depth = {}
 
-        postids = key.split('_')
-        
-        #bot check
-        for postid in postids:
-            for user in users:
-                if bot.check_bot(Bot, user) == 0:
-                    echo_chamber_users[postid] = echo_chamber_users.get(postid, {})
-                    echo_chamber_users[postid][user] = 1
-
-    
-    for postid in echo_chamber_users.keys():
-        with open('Retweet/%s'%postid, 'r') as f:
-            tweets = json.load(f)
-
-            cascade_path[postid] = {}
-            cascade_node[postid] = {}
-            cascade_depth[postid] = {}
-            #if echo chamber users are more than 1, then check 
-            user_num = len(echo_chamber_users[postid].keys())
-            path_num = 0 
-            if user_num < 2 : 
-                continue 
-
-            for tweet in tweets.values():
-                if tweet['user'] in echo_chamber_users[postid].keys():
-                    #check the parent is echo chamber user 
-                    if tweet['user'] != tweet['parent'] and tweet['parent'] in echo_chamber_users[postid].keys() and tweet['depth'] != 1:
-                        cascade_path[postid][tweet['origin_tweet']] = cascade_path[postid].get(tweet['origin_tweet'], 0) + 1 
-                    
-                    if tweet['depth'] != 1:
-                        cascade_node[postid][tweet['origin_tweet']] = cascade_node[postid].get(tweet['origin_tweet'], 0) + 1 
-                    #else:
-                    #    print(tweet['user'], tweet['origin'])
-                        
-                    if cascade_depth[postid].get(tweet['origin_tweet'], 0) < tweet['depth']: # max depth
-                        cascade_depth[postid][tweet['origin_tweet']] = tweet['depth']
-
-        ccc += 1 
-        #if ccc > 10:
-        #    break
-    path_distribution = []
-    for postid in cascade_path.keys(): #rumor
-        print(postid)
-        for cascade in cascade_path[postid].keys(): #cascade
-            #print(cascade)
-            path_num = cascade_path[postid][cascade]
-            node_num = cascade_node[postid][cascade]
-            #print('Path : %s / %s, Depth : %s'%(path_num, node_num , cascade_depth[postid][cascade])) # if they are same then, all rumor propagate within echo chambers 
-            #print(path_num / node_num, round(path_num / node_num, 1))
-            path_distribution.append(round(path_num/node_num, 1))
-    """
     ccc = 0
     retweet_cache = {}
+    path_distribution = []
     path_distribution2 = []
     #calculate echo chamber users in one echo chamber independently 
     for key in echo_chambers:
@@ -873,7 +881,7 @@ def propagation_within_echo_chamber():
                 if bot.check_bot(Bot, user) == 0:
                     echo_users[user] = 1
 
-            if len(echo_users) < 2:
+            if len(echo_users) < 1:
                 continue
 
             #load retweet graph 
@@ -887,6 +895,9 @@ def propagation_within_echo_chamber():
             cascade_path[key] = {}
             cascade_node[key] = {}
             cascade_depth[key] = {}
+            ne_cascade_path[key] = {}
+            ne_cascade_node[key] = {}
+            ne_cascade_depth[key] = {}
 
             for tweet in tweets.values():
                 if tweet['user'] in echo_users:
@@ -901,6 +912,18 @@ def propagation_within_echo_chamber():
                         
                     if cascade_depth[key].get(tweet['origin_tweet'], 0) < tweet['depth']: # max depth
                         cascade_depth[key][tweet['origin_tweet']] = tweet['depth']
+                else:
+                    #check the parent is echo chamber user 
+                    if tweet['user'] != tweet['parent'] and tweet['parent'] in echo_users.keys() and tweet['depth'] != 1:
+                        ne_cascade_path[key][tweet['origin_tweet']] = ne_cascade_path[key].get(tweet['origin_tweet'], 0) + 1 
+                    
+                    if tweet['depth'] != 1:
+                        ne_cascade_node[key][tweet['origin_tweet']] = ne_cascade_node[key].get(tweet['origin_tweet'], 0) + 1 
+                    #else:
+                    #    print(tweet['user'], tweet['origin'])
+                        
+                    if ne_cascade_depth[key].get(tweet['origin_tweet'], 0) < tweet['depth']: # max depth
+                        ne_cascade_depth[key][tweet['origin_tweet']] = tweet['depth']
         ccc += 1 
         #if ccc > 100:
         #    break
@@ -910,35 +933,61 @@ def propagation_within_echo_chamber():
             #print(cascade)
             path_num = cascade_path[postid][cascade]
             node_num = cascade_node[postid][cascade]
+            #if node_num == 1:
+            #    continue
+            #print('Path : %s / %s, Depth : %s'%(path_num, node_num , cascade_depth[postid][cascade])) # if they are same then, all rumor propagate within echo chambers 
+            #print(path_num / node_num, round(path_num / node_num, 1))
+            path_distribution.append(round(path_num/node_num, 1))
+         
+    for postid in ne_cascade_path.keys(): #rumor
+        #print(postid)
+        for cascade in ne_cascade_path[postid].keys(): #cascade
+            path_num = ne_cascade_path[postid][cascade]
+            node_num = ne_cascade_node[postid][cascade]
             if node_num == 1:
                 continue
-            print('Path : %s / %s, Depth : %s'%(path_num, node_num , cascade_depth[postid][cascade])) # if they are same then, all rumor propagate within echo chambers 
-            #print(path_num / node_num, round(path_num / node_num, 1))
             path_distribution2.append(round(path_num/node_num, 1))
-         
-
-
     
     #draw_cdf_plot([path_distribution], 'Ratio', [''], '', 'Image/20180920/echo_chamber_path_ratio')
-    draw_cdf_plot([path_distribution2], 'Ratio', [''], '', 'Image/20180927/echo_chamber_path_ratio2')
-    #draw_cdf_plot([path_distribution, path_distribution2], 'Ratio', ['type1', 'type2'], '', 'Image/20180920/echo_chamber_path_ratio2')
+    #draw_cdf_plot([path_distribution2], 'Ratio', [''], '', 'Image/%s/echo_chamber_path_ratio2'%folder)
+    draw_cdf_plot([path_distribution, path_distribution2], 'Ratio', ['Echo Chamber', 'Non Echo chamber'], 'User Type', 'Image/%s/echo_chamber_path_ratio2'%folder)
 
+def draw_cdf_plot(datas, datatype, legend, legend_type, filename):
+    cdf = CDFPlot()
+    cdf.set_label(datatype, 'CDF')
+    #cdf.set_log(True)
+    for i in range(len(datas)):
+        cdf.set_data(datas[i], legend[i])
+    if len(legend) > 1:
+        cdf.set_legends(legend, legend_type)
+    cdf.save_image('%s.png'%filename)
+
+def draw_ccdf_plot(datas, datatype, legend, legend_type, filename):
+    cdf = CCDFPlot()
+    cdf.set_label(datatype, 'CCDF')
+    #cdf.set_log(True)
+    for i in range(len(datas)):
+        cdf.set_data(datas[i])
+    if len(legend) > 1:
+        cdf.set_legends(legend, legend_type)
+    cdf.save_image('%s.png'%filename)
 
 if __name__ == "__main__":
     #following_anlysis()
-    
+    folder = '20181005' 
 
     #find_echo_chamber(2)
     #find_echo_chamber(3)
     #find_echo_chamber(4)
     #find_echo_chamber(5)
     #draw_statistics()
-    #propagation_within_echo_chamber()
+    propagation_within_echo_chamber()
     #echo_chamber_anlysis('Data/echo_chamber2.json', 'True')
     #echo_chamber_user_analysis()
     #draw_echo_chamber_cascade_chracteristics()
     #draw_echo_chamber_user_characteristics()
     #draw_echo_chamber_user_analysis()
     #draw_echo_chamber_true_false()
-    draw_echo_chamber_true_false()
+    #draw_echo_chamber_true_false()
+    #echo_chamber_political_cascade_analysis(None)
     

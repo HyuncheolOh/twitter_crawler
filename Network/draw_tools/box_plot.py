@@ -11,7 +11,7 @@ class BoxPlot:
     '''
     def __init__(self, subplot_num):
         self.fig_num = 1
-        self.fig = plt.figure(figsize=(20,10))
+        self.fig = plt.figure(figsize=(10,10))
         self.subplot_x = subplot_num
         self.subplot_y = subplot_num
 
@@ -26,7 +26,7 @@ class BoxPlot:
 
     def set_title(self, title):
         #self.ax.title.set_text(title, fontsize=20)
-        self.ax.set_title(title, fontsize=20)
+        self.ax.set_title(title, fontsize=20, y=1.02)
 
     def set_xticks(self, x_ticks):
         #plt.xticks(np.arange(len(x_ticks))+1, x_ticks) 
@@ -37,8 +37,8 @@ class BoxPlot:
         self.ax.set_yticklabels(y_ticks, fontsize=20)
 
     def set_label(self, x, y):
-        self.x_label = x
-        self.y_label = y
+        self.ax.set_xlabel(x, fontsize=20);
+        self.ax.set_ylabel(y, fontsize=20);
 
     def set_ylim(self, value):
         self.ax.set_ylim(0, value)

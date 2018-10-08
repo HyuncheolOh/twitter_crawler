@@ -8,7 +8,7 @@ class LinePlot:
     is_log = False;
 
     def __init__(self):
-	self.fig = plt.figure(figsize=(5,5));
+	self.fig = plt.figure(figsize=(10,5));
 	self.ax = self.fig.add_subplot(1,1,1);
         self.x_label = 'x';
 	self.y_label = 'y';
@@ -19,8 +19,8 @@ class LinePlot:
         else:
             for i in range(len(data)):
                 ax.plot(data[i], label=label, linewidth=2.0)
-        ax.set_xlabel(self.x_label, fontsize=20);
-        ax.set_ylabel(self.y_label, fontsize=20);
+        ax.set_xlabel(self.x_label, fontsize=16);
+        ax.set_ylabel(self.y_label, fontsize=16);
 
     def set_plot_data(self, data, label):
         #self.ax.set_xscale('log', nonpox='clip')

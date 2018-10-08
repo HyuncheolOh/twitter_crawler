@@ -1,13 +1,20 @@
 #user's polarity diversity 
 import os, sys, time
 import json
-import entropy
+import util
 import pandas as pd
 import numpy as np
+import echo_chamber_util as e_util
 from draw_tools.box_plot import BoxPlot
 from draw_tools.cdf_plot import CDFPlot
 from draw_tools.line_plot import LinePlot
+import draw_tools.pdf as pdf
 import random 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from scipy.stats.kde import gaussian_kde
+from scipy.stats import norm
 
 P = None
 def get_polarity(userid):
@@ -104,7 +111,7 @@ def diversity(filename):
         postid[postids[1]] = user_count
         if 1 in postid.values():
             break
-        diversity = entropy.eta(polars)
+        diversity = util.eta(polars)
         echo_diversity[key] = diversity
 
     dir_name = 'Retweet/'
@@ -125,7 +132,7 @@ def diversity(filename):
             score = get_polarity(userid)
             if score != -999:
                 polars.append(score)
-        diversity = entropy.eta(polars)
+        diversity = util.eta(polars)
         random_diversity[key] = diversity
         #print(users)
         print(polars)
@@ -164,14 +171,14 @@ def polarity_diversity():
 
     r_diversity = []
     for key in users_polarity.keys():
-        r_diversity.append(entropy.eta([score for score in users_polarity[key].values()]))
+        r_diversity.append(util.eta([score for score in users_polarity[key].values()]))
     
     print(pd.Series(r_diversity).describe())
     c_diversity = []
     for key in users_polarity_cascade.keys():
         if len(users_polarity_cascade[key]) < 2:
             continue
-        c_diversity.append(entropy.eta([score for score in users_polarity_cascade[key].values()]))
+        c_diversity.append(util.eta([score for score in users_polarity_cascade[key].values()]))
 
     print(pd.Series(c_diversity).describe())
     box = BoxPlot(1)
@@ -192,7 +199,7 @@ def polarity_diversity():
             continue
 
         polar = []
-        e_diversity.append(entropy.eta([get_polarity(user) for user in users]))
+        e_diversity.append(util.eta([get_polarity(user) for user in users]))
 
         #get all echo chamber users for cascade characteristics
         for postid in key.split('_'):
@@ -223,11 +230,11 @@ def polarity_diversity():
     for cascade in cascade_users.keys():
         #echo chamber user participated cascade
         if cascade in echo_cascade:
-            echo_cascade_diversity.append(entropy.eta([score for score in cascade_users[cascade].values()]))
+            echo_cascade_diversity.append(utily.eta([score for score in cascade_users[cascade].values()]))
             echo_cascade_size.append(len(cascade_users[cascade]))
         #non echo chamber user participated cascade
         else:
-            non_echo_cascade_diversity.append(entropy.eta([score for score in cascade_users[cascade].values()]))
+            non_echo_cascade_diversity.append(util.eta([score for score in cascade_users[cascade].values()]))
             non_echo_cascade_size.append(len(cascade_users[cascade]))
 
     print('echo chamber cascade')
@@ -247,6 +254,7 @@ def polarity_diversity():
     box.set_xticks(['Echo Chamber', 'Non Echo Chamber'])
     box.save_image('Image/20180927/diversity_echo_cascade_size_box.png')
 
+#homogeneity between a node and its parent homogeneity 
 def edge_homogeneity():
     files = os.listdir('Retweet')
     
@@ -317,8 +325,6 @@ def edge_homogeneity():
                     ne_homogeneity.append(e)
                     #ne_homogeneity.append(round(e, 1))
 
-        
-
 
     draw_cdf_plot([e_homogeneity, ne_homogeneity], 'Homogenety', ['Echo Chambers', 'Non-Echo Chambers'], 'User type', 'homogeneity')
 
@@ -341,7 +347,68 @@ def edge_homogeneity():
     line.set_xticks(x_ticks)
     line.save_image('Image/20180927/homogeneity_line.png')
 
+#mean edge homogeneity 
+#mean of a node and its all children
+def mean_edge_homogeneity():
+    #compare with echo chamber node's edge homogeneity
+    echo_chamber_users = {}
+    e_homogeneity = []
+    ne_homogeneity = []
+    retweet_cache = {}
+    echo_chamber_users = e_util.get_echo_chamber_users('Data/echo_chamber2.json')
     
+
+    parent_child = {}
+    for postid in echo_chamber_users.keys():
+        if retweet_cache.get(postid, None) == None:
+            with open('Retweet/%s'%postid, 'r') as f:
+                tweets = json.load(f)
+                retweet_cache[postid] = tweets
+        else:
+            tweets = retweet_cache[postid]
+
+        parent_child[postid] = {} #parent-children
+        #make parent - children map 
+        for tweet in tweets.values():
+            #echo chamber user's edge homogeneity
+            if tweet['cascade'] == 1:
+                continue
+
+            if tweet['parent'] != tweet['tweet']:
+                parent_child[tweet['parent']] = parent_child.get(tweet['parent'], [])
+                parent_child[tweet['parent']].append(tweet['user'])
+
+    for postid in echo_chamber_users.keys():
+        if retweet_cache.get(postid, None) == None:
+            with open('Retweet/%s'%postid, 'r') as f:
+                tweets = retweet_cache[postid]
+                retweet_cache[postid] = tweets
+        else:
+            tweets = retweet_cache[postid]
+        
+        for tweet in tweets.values():
+            if parent_child.get(tweet['user'], None) != None:
+                
+                #convert user and children's political score 
+                p_score = get_polarity(tweet['user'])
+                c_scores =  [get_polarity(c_user) for c_user in parent_child[tweet['user']]]
+
+                c_scores = list(filter(lambda x : x != -999, c_scores))
+                if p_score == -999 or len(c_scores) == 0:
+                    continue
+
+                multiple = list(map(lambda x: x * p_score , c_scores))
+                mean_edge_homogeneity = np.mean(multiple)
+                #print('mean', np.mean(multiple))
+
+                if tweet['user'] in echo_chamber_users[postid]:
+                    e_homogeneity.append(mean_edge_homogeneity)
+                else:
+                    ne_homogeneity.append(mean_edge_homogeneity)
+       
+    pdf.draw_pdf({'e': e_homogeneity, 'ne': ne_homogeneity})
+
+
 
 def draw_cdf_plot(datas, datatype, legend, legend_type, filename):
     cdf = CDFPlot()
@@ -370,4 +437,5 @@ def echo_chamber_diversity():
 if __name__ == "__main__":
     #echo_chamber_diversity()
     #polarity_diversity()
-    edge_homogeneity()
+    #edge_homogeneity()
+    mean_edge_homogeneity()

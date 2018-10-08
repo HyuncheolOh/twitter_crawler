@@ -185,17 +185,24 @@ def get_tweet(path):
         
         #isretweeted
         try:
-            retweet = tweet['retweeted_status']
-            tweet2 = retweet['text']
-            t_id2 = retweet['id_str']
-            u_id2 = retweet['user']['id_str']
-            origin_name = retweet['user']['screen_name']
-            time2 = retweet['created_at']
-            t[t_id1] = {'user' : u_id1, 'parent':u_id2, 'origin':u_id2, 'confirm': False, 'text' :  tweet1, 'origin_tweet':t_id2, 'parent_tweet' : t_id2, 'tweet':t_id1, 'screen_name':screen_name, 'origin_name':origin_name, 'time':time1, 'depth': 2}
-            t[t_id2] = {'user' : u_id2, 'parent':u_id2, 'origin':u_id2, 'confirm': True, 'text' :  tweet2, 'origin_tweet':t_id2, 'parent_tweet' : t_id2, 'tweet':t_id2, 'screen_name':origin_name, 'origin_name':origin_name, 'time':time2, 'depth': 1}
-            unique_u[u_id2] = 1
+            #retweet = tweet['retweeted_status']
+            retweet = tweet.get('retweeted_status', None)
+            if retweet == None:
+                retweet = tweet.get('quoted_status', None)
+            if retweet == None:
+                t[t_id1] = {'user' : u_id1, 'parent':u_id1, 'origin':u_id1, 'confirm': True, 'text' :tweet1, 'origin_tweet':t_id1, 'parent_tweet' : t_id1, 'tweet':t_id1, 'screen_name':screen_name,'origin_name':screen_name, 'time':time1, 'depth': 1}
+            else:
+                tweet2 = retweet['text']
+                t_id2 = retweet['id_str']
+                u_id2 = retweet['user']['id_str']
+                origin_name = retweet['user']['screen_name']
+                time2 = retweet['created_at']
+                t[t_id1] = {'user' : u_id1, 'parent':u_id2, 'origin':u_id2, 'confirm': False, 'text' :  tweet1, 'origin_tweet':t_id2, 'parent_tweet' : t_id2, 'tweet':t_id1, 'screen_name':screen_name, 'origin_name':origin_name, 'time':time1, 'depth': 2}
+                t[t_id2] = {'user' : u_id2, 'parent':u_id2, 'origin':u_id2, 'confirm': True, 'text' :  tweet2, 'origin_tweet':t_id2, 'parent_tweet' : t_id2, 'tweet':t_id2, 'screen_name':origin_name, 'origin_name':origin_name, 'time':time2, 'depth': 1}
+                unique_u[u_id2] = 1
         except KeyError as e:
             #no retweeted
+            print("Key Error Exception!!!!")
             t[t_id1] = {'user' : u_id1, 'parent':u_id1, 'origin':u_id1, 'confirm': True, 'text' :tweet1, 'origin_tweet':t_id1, 'parent_tweet' : t_id1, 'tweet':t_id1, 'screen_name':screen_name,'origin_name':screen_name, 'time':time1, 'depth': 1}
         #print(tweet.created_at_string, tweet.all_text)
     
@@ -205,19 +212,20 @@ def get_tweet(path):
     f_count = 0
     fr_count = 0
     for uid in unique_u.keys():
-        path = '../Data/followers/followers/' + uid
-        if os.path.exists(path):
+        user_path = '../Data/followers/followers/' + uid
+        if os.path.exists(user_path):
             f_count += 1
             
     for uid in unique_u.keys():
-        path = '../Data/friends/friends/' + uid
-        if os.path.exists(path):
+        user_path = '../Data/friends/friends/' + uid
+        if os.path.exists(user_path):
             fr_count += 1
 
-    #print('unique_users : %s , collected users : %s'%(len(unique_u), f_count))
+
     if len(t) <= 100:
         return 0, None
-        
+    print(path)
+    print('unique_users : %s , collected followers : %s, collected friends : %s'%(len(unique_u), f_count, fr_count))
     if f_count == len(unique_u) and fr_count == len(unique_u):
         print('%s : %s tweets'%(path, len(t)))
         return 1, t
@@ -236,17 +244,16 @@ if __name__ == "__main__":
     files = os.listdir(dir_name)
 
     shuffle(files)
+    count = 0
     for file_name in files:   
         if file_name == "followers" or file_name == "friends":
             continue
 
         postid = file_name.replace('.json', '')
 
-        #if postid != '142961':
-        #    continue
         #check retweet , friends already collected
-        Retweet = 'Retweet/'
-        Friends = 'PolarFriendsNew/'
+        Retweet = 'RetweetNew/'
+        Friends = 'PolarFriends/'
         if os.path.exists(Retweet + postid) and os.path.exists(Friends + postid):
             continue
 
@@ -255,6 +262,8 @@ if __name__ == "__main__":
 
         result, t = get_tweet(dir_name + file_name)
         #print(result)
+        if result != 0:
+            count += 1
         if (result == 1 or result == 2) and os.path.exists(Retweet + postid) == False:
     
             print(postid)
@@ -272,4 +281,5 @@ if __name__ == "__main__":
             with open(Friends + postid, 'w') as f:
                 json.dump(extracted_friends, f)
 
+    print('all rumors : %s'%count)
 

@@ -12,6 +12,7 @@ import tweepy
 import csv
 from tweepy import OAuthHandler
 from time import sleep
+from random import shuffle
 import veracity_check as vc
 
 #-----------------------------------------------------------------------
@@ -113,16 +114,16 @@ if __name__ == '__main__':
     load_key_list()
     api = load_api()
 
-    #files.reverse()
+    shuffle(files)
     for post_id in files:
        
         if post_id == "friends" or post_id == "followers":
             continue
+        
         #get user list 
         f = open(os.path.join(dirname, post_id))
         lines = f.readlines()
-        follower_list = None
-        followers_data = {}
+        f.close()
         list_path = './Data/followers/list.json'
         followers_all_path = './Data/followers/all.json'
         #followers_path = './Data/followers/%s'%post_id
@@ -133,15 +134,10 @@ if __name__ == '__main__':
 
         pid = post_id.replace(".json", "")
         result = vc.check_veracity(pid)
-        print("%s : %s"%(pid, result))
         if result == "False":
             continue
 
-        if not os.path.exists(list_path):
-            follower_list = {}
-#        else :
-            #follower_list = json.load(open(list_path))
-
+        shuffle(lines)
         for line in lines:
             #print(line)
             tweet = json.loads(line)
@@ -150,7 +146,12 @@ if __name__ == '__main__':
             screen_name = None
             followers_count = None
             try:
-                retweet = tweet['retweeted_status']
+                retweet = tweet.get('retweeted_status', None)
+                if retweet == None:
+                    retweet = tweet.get('quoted_status', None)
+
+                if retweet == None:
+                    continue
                 user = retweet['user']
                 user_id = user['id_str']
                 screen_name = user['screen_name']
@@ -169,7 +170,6 @@ if __name__ == '__main__':
             followers = []
             if int(followers_count) == 0 :
                 print("followers count is zero")
-#                follower_list[user_id] = 0
             else:
     
                 followers = get_followers(api, screen_name)
@@ -179,17 +179,14 @@ if __name__ == '__main__':
                     print("change access token and load_api again")
                     api = load_api()
                     continue
-#                follower_list[user_id] = len(followers)
                 #save user : file name , followers : content
-                #followers_data[user_id] = followers
             
             followers_path = './Data/followers/followers/%s'%user_id
-            with open(followers_path, 'w') as f:
-                json.dump(followers, f)
+            f = open(followers_path, 'w')
+            json.dump(followers, f)
+            f.close()
 
 
-  #          with open(list_path, 'w') as f:
- #               json.dump(follower_list, f)
 
 
 

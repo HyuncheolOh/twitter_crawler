@@ -117,11 +117,11 @@ if __name__ == '__main__':
        
         if post_id == "friends" or post_id == "followers":
             continue
+
         #get user list 
         f = open(os.path.join(dirname, post_id))
         lines = f.readlines()
-        follower_list = None
-        followers_data = {}
+        f.close()
         list_path = './Data/followers/list.json'
         followers_all_path = './Data/followers/all.json'
         #followers_path = './Data/followers/%s'%post_id
@@ -134,15 +134,7 @@ if __name__ == '__main__':
             continue
 
 
-        if not os.path.exists(list_path):
-            follower_list = {}
-        #else :
-            #follower_list = json.load(open(list_path))
 
-#        if not os.path.exists(followers_all_path):
-#            followers_data = {}
-#        else : 
-#            followers_data = json.load(open(followers_all_path))
         shuffle(lines)
         lines.reverse()
         for line in lines:
@@ -164,7 +156,6 @@ if __name__ == '__main__':
             followers = []
             if int(followers_count) == 0 :
                 print("followers count is zero")
-                #follower_list[user_id] = 0
             else:
     
                 followers = get_followers(api, screen_name)
@@ -174,17 +165,13 @@ if __name__ == '__main__':
                     print("change access token and load_api again")
                     api = load_api()
                     continue
-#                follower_list[user_id] = len(followers)
                 #save user : file name , followers : content
-                #followers_data[user_id] = followers
             
             followers_path = './Data/followers/followers/%s'%user_id
             with open(followers_path, 'w') as f:
                 json.dump(followers, f)
 
 
-#            with open(list_path, 'w') as f:
-#                json.dump(follower_list, f)
 
 
 
