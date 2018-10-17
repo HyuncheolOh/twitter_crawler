@@ -8,13 +8,17 @@ from scipy.stats import norm
 
 
 
-def draw_pdf(data):
-    plt.style.use("ggplot")
+def draw_pdf(data, xlabel, legends, path):
+#    plt.style.use("ggplot")
 
     #f = open("Data/homogeneity.json","r")
     #data = json.load(f)
     e_homogeneity = data['e']
     ne_homogeneity = data['ne']
+    
+    legend1 = legends[0]
+    legend2 = legends[1]
+    
     #f.close()
 
     d1 = []
@@ -32,12 +36,12 @@ def draw_pdf(data):
     x = np.arange(-1, 1.1, 0.1)
     fig = plt.figure(figsize=(7,7));
     ax = fig.add_subplot(1,1,1);
-    ax.plot(x,KDEpdf(x),'r',label="Echo Chamber",color="blue")
-    ax.plot(x,KDEpdf2(x),'r',label="Non Echo Chamber",color="green")
+    ax.plot(x,KDEpdf(x),'r',label=legend1,color="blue")
+    ax.plot(x,KDEpdf2(x),'r',label=legend2,color="green")
     #plt.hist(d1_np,normed=1,color="cyan",alpha=.8)
     #plt.plot(x,norm.pdf(x,mu,stdv),label="parametric distribution",color="red")
     plt.legend(loc=4)
     ax.set_ylabel('PDF', fontsize=20);
-    ax.set_xlabel('Mean Edge Homogeneity', fontsize=20);
+    ax.set_xlabel(xlabel, fontsize=20);
 
-    plt.savefig('Image/20181005/mean_edge_homogeneity.png', bbox_inches='tight')
+    plt.savefig(path, bbox_inches='tight')

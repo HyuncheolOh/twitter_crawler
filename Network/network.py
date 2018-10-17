@@ -37,7 +37,12 @@ def retweet_network(t):
             #check uid is origin's follower
             if int(uid) in followers:
                 t[tid]['confirm'] = True
-                t[tid]['depth'] = 2
+                #t[tid]['depth'] = 2
+                origin = t[tid]['origin_tweet']
+                t[tid]['depth'] = t[origin]['depth'] + 1 
+                t[tid]['origin'] = t[origin]['origin']
+                t[tid]['origin_name'] = t[origin]['origin_name']
+                t[tid]['origin_tweet'] = t[origin]['origin_tweet']
                 #confirm[tid] = t[tid]
                 confirm_new[tid] = t[tid]
             else:
@@ -90,6 +95,7 @@ def sub_retweet_network(confirm, unconfirm):
                     tweet1['parent'] = origin_user
                     tweet1['depth'] = tweet2['depth'] + 1 
                     tweet1['parent_tweet'] = tid2
+                    
                     confirm_new[tid] = tweet1
                     change_count += 1
                     break
@@ -136,6 +142,9 @@ def sub_retweet_network2(confirm, newconfirm, unconfirm):
                         tweet1['parent'] = origin_user
                         tweet1['depth'] = tweet2['depth'] + 1 
                         tweet1['parent_tweet'] = tid2
+                        tweet1['origin'] = tweet2['origin']
+                        tweet1['origin_name'] = tweet2['origin_name']
+                        tweet1['origin_tweet'] = tweet2['origin_tweet']
                         confirm_new[tid] = tweet1
                         change_count += 1
                         break
@@ -150,6 +159,23 @@ def sub_retweet_network2(confirm, newconfirm, unconfirm):
         sub_retweet_network2(confirm, confirm_new, unconfirm_new)
 
     confirm.update(unconfirm_new)
+
+    #handle all remained unconfirmed tweets
+    last_update = 0
+    for tid in unconfirm:
+        tweet1 = unconfirm[tid]
+        for tid2 in confirm:
+            tweet2 = confirm[tid2]
+            if tweet1['parent_tweet'] == tid2:
+                tweet1['confirm'] = True
+                tweet1['depth'] = tweet2['depth'] + 1 
+                tweet1['parent_tweet'] = tid2
+                tweet1['origin'] = tweet2['origin']
+                tweet1['origin_name'] = tweet2['origin_name']
+                tweet1['origin_tweet'] = tweet2['origin_tweet']
+                last_update += 1 
+                break
+    print('last update %s'%last_update)
     return confirm
 
 
@@ -181,7 +207,6 @@ def get_tweet(path):
         screen_name = tweet['user']['screen_name']
         time1 = tweet['created_at']
         unique_u[u_id1] = 1
-        unique_f[u_id1] = 1
         
         #isretweeted
         try:
@@ -189,6 +214,7 @@ def get_tweet(path):
             retweet = tweet.get('retweeted_status', None)
             if retweet == None:
                 retweet = tweet.get('quoted_status', None)
+            
             if retweet == None:
                 t[t_id1] = {'user' : u_id1, 'parent':u_id1, 'origin':u_id1, 'confirm': True, 'text' :tweet1, 'origin_tweet':t_id1, 'parent_tweet' : t_id1, 'tweet':t_id1, 'screen_name':screen_name,'origin_name':screen_name, 'time':time1, 'depth': 1}
             else:
@@ -251,11 +277,14 @@ if __name__ == "__main__":
 
         postid = file_name.replace('.json', '')
 
+        #if postid != '29947':
+        #    continue
+
         #check retweet , friends already collected
         Retweet = 'RetweetNew/'
         Friends = 'PolarFriends/'
-        if os.path.exists(Retweet + postid) and os.path.exists(Friends + postid):
-            continue
+        #if os.path.exists(Retweet + postid) and os.path.exists(Friends + postid):
+        #    continue
 
         if veracity.check(postid) == False:
             continue
@@ -264,13 +293,14 @@ if __name__ == "__main__":
         #print(result)
         if result != 0:
             count += 1
-        if (result == 1 or result == 2) and os.path.exists(Retweet + postid) == False:
-    
+        #if (result == 1 or result == 2) and os.path.exists(Retweet + postid) == False:
+        if (result == 1 or result == 2):
+
             print(postid)
             r_network = retweet_network(t)
             
-            #with open(Retweet + postid, 'w') as f:
             with open(Retweet + postid, 'w') as f:
+            #with open(postid, 'w') as f:
                 json.dump(r_network, f)
        
         if (result == 1 or result == 3) and os.path.exists(Friends + postid) == False:

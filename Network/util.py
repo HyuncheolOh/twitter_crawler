@@ -4,6 +4,8 @@ import fileinput
 import bot_detect as bot
 import unicodecsv as csv
 import pandas as pd
+import operator as op
+import numpy as np
 from dateutil import parser
 import math
 from collections import Counter
@@ -17,6 +19,41 @@ def sql_connect():
 def sql_close(cursor, conn):
     cursor.close()
     conn.close()
+
+def is_veracity(postid, veracity):
+    conn, cursor = sql_connect()
+    if int(postid) < 100000:
+    #factchecking
+        sql = """
+        SELECT veracity
+        FROM factchecking_data
+        WHERE id = %s and ({0})
+        """
+
+    else:
+    #snopes
+        sql = """
+        SELECT veracity
+        FROM snopes_set
+        WHERE post_id = %s and ({0})
+        """
+
+    veracity = veracity.split(',')
+    if len(veracity) == 1:
+        sql = sql.format("veracity = '%s'"%veracity[0])
+    else:
+        v_list = ["veracity = '%s'"%item for item in veracity]
+        condition = " or ".join(v_list)
+        sql = sql.format(condition)
+    cursor.execute(sql, [postid])
+    rs = cursor.fetchall()
+    sql_close(cursor, conn)
+    #return rs[0][0]
+    if len(rs) == 0:
+        return False
+    else:
+        return True
+
 
 def get_category(postid):
     conn, cursor = sql_connect()
@@ -92,13 +129,18 @@ def remove_outlier(arr):
     if len(set(arr)) == 1 or len(arr) == 1:
         return arr
 
-    elements = numpy.array(arr)
+    elements = np.array(arr)
 
-    mean = numpy.mean(elements, axis=0)
-    sd = numpy.std(elements, axis=0)
+    mean = np.mean(elements, axis=0)
+    sd = np.std(elements, axis=0)
 
     final_list = [x for x in arr if (x > mean - 2 * sd)]
     final_list = [x for x in final_list if (x < mean + 2 * sd)]
 
     return final_list
-
+#combination function
+def ncr(n, r):
+    r = min(r, n-r)
+    numer = reduce(op.mul, xrange(n, n-r, -1), 1)
+    denom = reduce(op.mul, xrange(1, r+1), 1)
+    return numer//denom

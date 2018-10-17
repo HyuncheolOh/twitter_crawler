@@ -119,6 +119,7 @@ def update():
     #update
     Bot = bot.load_bot()
     for postid in files:
+        print(postid)
         unique_origin = {}
         with open(dir_name + postid, 'r') as f:
             tweets = json.load(f)
@@ -129,11 +130,10 @@ def update():
                 tweet['bot'] = bot.check_bot(Bot, tweet['user'])
                 tweet['child'] = child[postid].get(tweet['tweet'], 0)
                 unique_origin[tweet['origin_tweet']] = 1
-        print(postid)
         print('unique root', len(unique_origin))
-        for key in unique_origin.keys():
+        #for key in unique_origin.keys():
             #print(key)
-            sub_tree_num(tweets, key)
+        #    sub_tree_num(tweets, key)
     
         #with open(postid, 'w') as f:
         #    json.dump(tweets, f)
@@ -326,11 +326,17 @@ def draw_graph():
 
     
 if __name__ == "__main__":
-    dir_name = 'Retweet/'
+    dir_name = 'RetweetNew/'
     files = os.listdir(dir_name)
    
     if len(sys.argv) >= 2:
+        print(sys.argv)
+        if len(sys.argv) == 3:
+            files = [sys.argv[2]]
+            print(files)
+
         update()
+
         sys.exit()
     draw_graph()
     #tim1e_series('True')

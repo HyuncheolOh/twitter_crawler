@@ -30,11 +30,12 @@ def get_echo_chamber_users(file_name):
 
 # max breadth, depth, cascade from a cascade
 def get_cascade_max_breadth():
-    dir_name = "Retweet/"
+    dir_name = "RetweetNew/"
     files = os.listdir(dir_name)
     c_breadth = {}
     c_depth = {}
     c_unique_users = {}
+    max_depth = 0
     for postid in files:
         #cascade_breadth[postid] = {} #origin tweet + max_breadth
         with open(dir_name + postid, 'r') as f:
@@ -60,17 +61,22 @@ def get_cascade_max_breadth():
        
             if c_depth[origin_tweet] < tweet['depth']:
                 c_depth[origin_tweet] = tweet['depth']
-        
+
+                if tweet['depth'] > max_depth:
+                    max_depth = tweet['depth']
+
+            
         for key in u.keys():
             c_unique_users[key] = len(u[key])
     
     print("Max cascade, max depth, unique users of cascade calculation done")
+    print('max_depth : %s'%max_depth)
     return c_breadth, c_depth, c_unique_users
 
 
 # max breadth, depth, cascade from a rumor 
 def get_rumor_max_properties():
-    dir_name = "Retweet/"
+    dir_name = "RetweetNew/"
     files = os.listdir(dir_name)
     c_breadth = {}
     c_depth = {}

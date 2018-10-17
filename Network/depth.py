@@ -4,14 +4,15 @@ import os, sys, json
 import bot_detect as bot 
 import numpy as np
 import itertools
-import outlier
 import echo_chamber_util as e_util
 import util
+import pandas as pd
 from dateutil import parser
 import draw_tools.cdf_plot as cdf_plot
 from draw_tools.cdf_plot import CDFPlot
 from draw_tools.ccdf_plot import CCDFPlot
 from draw_tools.line_plot import LinePlot
+from draw_tools.box_plot import BoxPlot
 def sql_connect():
     conn = MySQLdb.connect(host="localhost", user="root", passwd="mmlab", db="fake_news", use_unicode=True, charset='utf8')
     cursor = conn.cursor()
@@ -79,7 +80,7 @@ def get_veracity(postid, veracity):
  
 #remove or not? 
 def time_to_depth():
-    index = filename.replace(".json", "").split('echo_chamber')
+    #index = filename.replace(".json", "").split('echo_chamber')
     #print(index)
     _, _, time_depth_cascade, user_ids, cascade_depth_users = get_depth_time_series('True')    
     _, _, time_depth_cascade2, user_ids2, cascade_depth_users2 = get_depth_time_series('False')    
@@ -129,32 +130,48 @@ def time_to_depth():
                 pass 
 
     x_ticks = np.arange(1,20)
- 
-    y_ticks1 = [np.mean(t_td[depth]) for depth in x_ticks]
-    y_ticks2 = [np.mean(f_td[depth]) for depth in x_ticks]
-    y_ticks3 = [np.mean(m_td[depth]) for depth in x_ticks]
+    """
+    depth_list = []
+    veracity_list = []
+    time_list = []
+    for depth in x_ticks:
+        for value in t_td[depth]:
+            depth_list.append(depth)
+            time_list.append(value)
+            veracity_list.append('True')
+        
+        for value in f_td[depth]:
+            depth_list.append(depth)
+            time_list.append(value)
+            veracity_list.append('False')
+
+        for value in m_td[depth]:
+            depth_list.append(depth)
+            time_list.append(value)
+            veracity_list.append('Mixed')
+
+    df = pd.DataFrame({'time':time_list, 'depth':depth_list, 'type':veracity_list}) 
+    line = LinePlot()
+    line.set_sns_plot(df)
+    """
+    y_ticks1 = [np.median(t_td[depth]) for depth in x_ticks]
+    y_ticks2 = [np.median(f_td[depth]) for depth in x_ticks]
+    y_ticks3 = [np.median(m_td[depth]) for depth in x_ticks]
 
     print(y_ticks1)
     print(y_ticks2)
     print(y_ticks3)
    
-    y_ticks1 = [np.mean(outlier.remove_outlier(t_td[depth])) for depth in x_ticks]
-    y_ticks2 = [np.mean(outlier.remove_outlier(f_td[depth])) for depth in x_ticks]
-    y_ticks3 = [np.mean(outlier.remove_outlier(m_td[depth])) for depth in x_ticks]
-    print(y_ticks1)
-    print(y_ticks2)
-    print(y_ticks3)
-
     line = LinePlot()
     line.set_ylog()
-    line.set_label('Depth', 'Mean Minutes')
+    line.set_label('Depth', 'Median Minutes')
     line.set_plot_data(y_ticks1, x_ticks)
     line.set_plot_data(y_ticks2, x_ticks)
     line.set_plot_data(y_ticks3, x_ticks)
     line.set_legends(['True', 'False', 'Mixed'])
     line.set_xticks(x_ticks)
-    line.save_image('Image/20180919/time_depth_line_echo_chamber_%s_%s.png'%(index[1], veracity))
-
+    line.save_image('%s/time_depth_line_echo_chamber.png'%(foldername))
+    
     #number of users to depth 
     u_ticks1 = [np.mean(t_ud[depth]) for depth in x_ticks]
     u_ticks2 = [np.mean(f_ud[depth]) for depth in x_ticks]
@@ -169,7 +186,7 @@ def time_to_depth():
     line.set_plot_data(u_ticks3, x_ticks)
     line.set_legends(['True', 'False', 'Mixed'])
     line.set_xticks(x_ticks)
-    line.save_image('Image/20180919/user_depth_line_echo_chamber_%s_%s.png'%(index[1], veracity))
+    line.save_image('%s/user_depth_line_echo_chamber.png'%(foldername))
 
 
 #max depth per cascade
@@ -203,7 +220,7 @@ def max_depth_per_rumor():
 
 def get_depth(politic=None, veracity=None, echo_chamber=False):
     print(politic, veracity, echo_chamber)
-    dir_name = "Retweet/"
+    dir_name = "RetweetNew/"
     files = os.listdir(dir_name)
     unique_d = {}
     count = 0
@@ -329,7 +346,7 @@ def depth_politics_cdf():
     cdf.save_image('Image/20181002/depth_ccdf.png')
   
 def get_depth_time_series(veracity):
-    dir_name = "Retweet/"
+    dir_name = "RetweetNew/"
     files = os.listdir(dir_name)
     unique_d = {}
     count = 0
@@ -341,11 +358,13 @@ def get_depth_time_series(veracity):
     cascade_unique_users = {} #root user
     Bot = bot.load_bot()
     for postid in files:
+        #if postid != '29947':
+        #    continue
         if veracity != None:
             if not get_veracity(postid,  veracity):
                 continue
 
-        print(postid)
+        #print(postid)
         unique_d[postid] = {}
         with open(dir_name + postid, 'r') as f:
             tweets = json.load(f)
@@ -434,10 +453,18 @@ def get_depth_time_series(veracity):
     return depth_time, depth_user, cascade_depth, userid_cascade, cascade_depth_users
 
 def time_to_depth_echo_chamber(filename):
-    #get echo chamber cascade only 
-    with open(filename, 'r') as f:
-        echo_chambers = json.load(f)
+    
+    _, _, time_depth, _, user_depth = get_depth_time_series(None)    
 
+    #with open('Data/time_series_data.json', 'w') as f:
+    #    json.dump({'time_depth' : time_depth, 'user_depth' : user_depth}, f)
+    #with open('Data/time_series_data.json', 'r') as f:
+    #    data = json.load(f)
+
+    #time_depth = data['time_depth']
+    #user_depth = data['user_depth']
+
+    print("time series data load done ")
     echo_chamber_values = {}
     non_echo_chamber_values = {} 
     for item in ['time_depth', 'user_depth']:
@@ -448,39 +475,28 @@ def time_to_depth_echo_chamber(filename):
             echo_chamber_values[item][i] = []
             non_echo_chamber_values[item][i] = []
     
-    bot = bot.load_bot()
+    Bot = bot.load_bot()
     echo_chamber_cascade_root = {}
     cascade_veracity = {}
-    echo_chamber_users = {}
-    #keys = sorted(echo_chambers)
-    #keys.reverse()
-    #print(keys)
-    #print(echo_chambers.keys())
-    out = false
-    for key in echo_chambers.keys():
-        users = echo_chambers[key]
+    echo_chamber_users = e_util.get_echo_chamber_users(filename)
 
-        postids = key.split('_')
-        
-        #bot check
-        for postid in postids:
-            for user in users:
-                if bot.check_bot(bot, user) == 0:
-                    echo_chamber_users[postid] = echo_chamber_users.get(postid, {})
-                    echo_chamber_users[postid][user] = 1
-
-    files = os.listdir('retweet')
+    files = os.listdir('RetweetNew')
+    #collect echo chamber user participate cascade 
     #for postid in echo_chamber_users.keys():
     for postid in files:
 
         v = veracity_type(postid).title()
         
         #get origin tweet of echo chamber user 
-        with open('retweet/%s'%postid, 'r') as f:
+        with open('RetweetNew/%s'%postid, 'r') as f:
             tweets = json.load(f)
 
             for tweet in tweets.values():
                 try:
+                    #if tweet['user'] in echo_chamber_users[postid].keys():
+                    origin = tweet['origin']
+                    otid = tweet['origin_tweet']
+                    #if origin in echo_chamber_users[postid].keys():
                     if tweet['user'] in echo_chamber_users[postid].keys():
                         echo_chamber_cascade_root[tweet['origin_tweet']] = 1
                 except keyerror :
@@ -488,26 +504,13 @@ def time_to_depth_echo_chamber(filename):
 
                 cascade_veracity[tweet['origin_tweet']] = v
                     
-    print(set(cascade_veracity.values()))
-
-    if cascade_veracity.values()[0] == 'true':
-        print('true')
-    elif cascade_veracity.values()[0] == 'false':
-        print('false')
-    else:
-        print('mixed')
-        
     print("echo chamber cascade extraction done")
-
-    _, _, time_depth, _, user_depth = get_depth_time_series(none)    
-
-    print("time series data load done ")
     echo_chamber_cascades = echo_chamber_cascade_root.keys()
     print('echo chamber cascades')
     #print(echo_chamber_cascades)
 
     e = {}; n = {};
-    for item in ['true', 'false', 'mixed']:
+    for item in ['True', 'False', 'Mixed']:
         e[item] = {}
         n[item] = {}
         
@@ -521,8 +524,8 @@ def time_to_depth_echo_chamber(filename):
 
     for key in time_depth.keys():
         v = cascade_veracity[key]
-        if v !='true' and  v != 'false':
-            v = 'mixed'
+        if v !='True' and  v != 'False':
+            v = 'Mixed'
 
         if key in echo_chamber_cascades:
             for i in range(1, max(time_depth[key].keys())):
@@ -532,7 +535,7 @@ def time_to_depth_echo_chamber(filename):
                     e[v]['time_depth'][i].append(time_depth[key][i])
                     e[v]['user_depth'][i].append(user_depth[key][i])
 
-                except keyerror:
+                except KeyError:
                     pass
         else:
             for i in range(1, max(time_depth[key].keys())):
@@ -542,18 +545,25 @@ def time_to_depth_echo_chamber(filename):
                     n[v]['time_depth'][i].append(time_depth[key][i])
                     n[v]['user_depth'][i].append(user_depth[key][i])
 
-                except keyerror:
+                except KeyError:
                     pass
 
+    box = BoxPlot(1)
+    box.set_multiple_data([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth']])
+    box.set_ylog()
+    box.set_label('Depth', 'Minutes to Depth')
+    box.save_image('%s/time_depth_echo_chamber_box.png'%foldername)
+    
+
     #draw time to depth, user to depth of cascade for echo chamber users participated or non echo chamer users participated 
-    draw_time_to_depth_echo_chamber([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth']], ['echo chamber', 'no echo chamber'], 'mean minutes', 'time_depth_echo_chamber_line')
-    draw_time_to_depth_echo_chamber([echo_chamber_values['user_depth'], non_echo_chamber_values['user_depth']], ['echo chamber', 'no echo chamber'], 'mean unique users', 'user_depth_echo_chamber_line')
-    draw_time_to_depth_echo_chamber([e['true']['time_depth'], n['true']['time_depth']], ['echo chamber', 'no echo chamber'], 'mean minutes', 'time_depth_echo_chamber_line_t')
-    draw_time_to_depth_echo_chamber([e['false']['time_depth'], n['false']['time_depth']], ['echo chamber', 'no echo chamber'],'mean minutes', 'time_depth_echo_chamber_line_f')
-    draw_time_to_depth_echo_chamber([e['mixed']['time_depth'], n['mixed']['time_depth']], ['echo chamber', 'no echo chamber'],'mean minutes', 'time_depth_echo_chamber_line_m')
-    draw_time_to_depth_echo_chamber([e['true']['user_depth'], n['true']['user_depth']], ['echo chamber', 'no echo chamber'],'mean unique users', 'user_depth_echo_chamber_line_t')
-    draw_time_to_depth_echo_chamber([e['false']['user_depth'], n['false']['user_depth']], ['echo chamber', 'no echo chamber'],'mean unique users', 'user_depth_echo_chamber_line_f')
-    draw_time_to_depth_echo_chamber([e['mixed']['user_depth'], n['mixed']['user_depth']], ['echo chamber', 'no echo chamber'],'mean unique users', 'user_depth_echo_chamber_line_m')
+    draw_time_to_depth_echo_chamber([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth']], ['echo chamber', 'no echo chamber'], 'median minutes', 'time_depth_echo_chamber_line')
+    draw_time_to_depth_echo_chamber([echo_chamber_values['user_depth'], non_echo_chamber_values['user_depth']], ['echo chamber', 'no echo chamber'], 'median unique users', 'user_depth_echo_chamber_line')
+    draw_time_to_depth_echo_chamber([e['True']['time_depth'], n['True']['time_depth']], ['echo chamber', 'no echo chamber'], 'median minutes', 'time_depth_echo_chamber_line_t')
+    draw_time_to_depth_echo_chamber([e['False']['time_depth'], n['False']['time_depth']], ['echo chamber', 'no echo chamber'],'median minutes', 'time_depth_echo_chamber_line_f')
+    draw_time_to_depth_echo_chamber([e['Mixed']['time_depth'], n['Mixed']['time_depth']], ['echo chamber', 'no echo chamber'],'median minutes', 'time_depth_echo_chamber_line_m')
+    draw_time_to_depth_echo_chamber([e['True']['user_depth'], n['True']['user_depth']], ['echo chamber', 'no echo chamber'],'median unique users', 'user_depth_echo_chamber_line_t')
+    draw_time_to_depth_echo_chamber([e['False']['user_depth'], n['False']['user_depth']], ['echo chamber', 'no echo chamber'],'median unique users', 'user_depth_echo_chamber_line_f')
+    draw_time_to_depth_echo_chamber([e['Mixed']['user_depth'], n['Mixed']['user_depth']], ['echo chamber', 'no echo chamber'],'median unique users', 'user_depth_echo_chamber_line_m')
 
 #time, user to depth of political, non political rumors 
 def propagation_to_depth_politic(filename):
@@ -590,11 +600,12 @@ def propagation_to_depth_politic(filename):
     non_politic_cascade = {}
    
     echo_chamber_users = e_util.get_echo_chamber_users(filename)
-    files = os.listdir('Retweet')
+    files = os.listdir('RetweetNew')
     #for postid in echo_chamber_users.keys():
     for postid in files:
         
-        if not get_veracity(postid, 'Mixture,Mostly True,Mostly False'):
+        #if not get_veracity(postid, 'Mixture,Mostly True,Mostly False'):
+        if not get_veracity(postid, 'False'):
             continue
 
         v = veracity_type(postid).title()
@@ -606,7 +617,7 @@ def propagation_to_depth_politic(filename):
         elif util.is_non_politics(postid):
             politic_num = 2
 
-        with open('Retweet/%s'%postid, 'r') as f:
+        with open('RetweetNew/%s'%postid, 'r') as f:
             tweets = json.load(f)
 
             for tweet in tweets.values():
@@ -625,7 +636,7 @@ def propagation_to_depth_politic(filename):
     #print(set(cascade_veracity.values()))
     print("echo chamber cascade extraction done")
 
-    _, _, time_depth, _, user_depth = get_depth_time_series(None)    
+    _, _, time_depth, _, user_depth = get_depth_time_series('False') 
 
     print("time series data load done ")
     echo_chamber_cascades = echo_chamber_cascade_root.keys()
@@ -683,14 +694,14 @@ def propagation_to_depth_politic(filename):
        
        
     #draw time to depth, user to depth of cascade for echo chamber users participated or non echo chamer users participated 
-    draw_time_to_depth_echo_chamber([politics['time_depth'], non_politics['time_depth']], ['Politics', 'Other'], 'Mean Minutes', 'time_depth_politics_line')
-    draw_time_to_depth_echo_chamber([politics['user_depth'], non_politics['user_depth']], ['Politics', 'Other'], 'Mean Unique Users', 'user_depth_politics_line')
+    draw_time_to_depth_echo_chamber([politics['time_depth'], non_politics['time_depth']], ['Politics', 'Other'], 'Median Minutes', 'time_depth_politics_line')
+    draw_time_to_depth_echo_chamber([politics['user_depth'], non_politics['user_depth']], ['Politics', 'Other'], 'Median Unique Users', 'user_depth_politics_line')
     
     #compare echo chamber users participated cascades and non echo chamber users participated cascades for politics and others 
-    draw_time_to_depth_echo_chamber([echo_politics['time_depth'], non_echo_politics['time_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Mean Minutes', 'time_depth_politics_echo_line')
-    draw_time_to_depth_echo_chamber([echo_politics['user_depth'], non_echo_politics['user_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Mean Unique Users', 'user_depth_politics_echo_line')
-    draw_time_to_depth_echo_chamber([echo_non_politics['time_depth'], non_echo_non_politics['time_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Mean Minutes', 'time_depth_non_politics_echo_line')
-    draw_time_to_depth_echo_chamber([echo_non_politics['user_depth'], non_echo_non_politics['user_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Mean Unique Users', 'user_depth_non_politics_echo_line')
+    draw_time_to_depth_echo_chamber([echo_politics['time_depth'], non_echo_politics['time_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Median Minutes', 'time_depth_politics_echo_line')
+    draw_time_to_depth_echo_chamber([echo_politics['user_depth'], non_echo_politics['user_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Median Unique Users', 'user_depth_politics_echo_line')
+    draw_time_to_depth_echo_chamber([echo_non_politics['time_depth'], non_echo_non_politics['time_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Median Minutes', 'time_depth_non_politics_echo_line')
+    draw_time_to_depth_echo_chamber([echo_non_politics['user_depth'], non_echo_non_politics['user_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Median Unique Users', 'user_depth_non_politics_echo_line')
 
 def draw_time_to_depth_echo_chamber(data, legend, data_type, filename):
     x_ticks = np.arange(1,20)
@@ -698,21 +709,13 @@ def draw_time_to_depth_echo_chamber(data, legend, data_type, filename):
     line.set_ylog()
     line.set_label('Depth', data_type)
     for item in data:
-        yticks = [np.mean(item[depth]) for depth in x_ticks]
+        #yticks = [np.mean(item[depth]) for depth in x_ticks]
+        yticks = [np.median(item[depth]) for depth in x_ticks]
         #u_ticks1 = [np.mean(outlier.remove_outlier(item[depth])) for depth in x_ticks]
         line.set_plot_data(yticks, x_ticks)
     line.set_legends(legend)
     line.set_xticks(x_ticks)
     line.save_image('%s/%s.png'%(foldername, filename))
-
-
-def echo_chamber_depth():
-    filename = 'Data/echo_chamber2.json'
-    time_to_depth_echo_chamber(filename)
-    #time_to_depth_echo_chamber(filename, 'True')
-    #time_to_depth_echo_chamber(filename, 'False')
-    #time_to_depth_echo_chamber(filename, 'Mixture,Mostly True,Mostly False')
-
 
 def user_to_depth(user_depth, user_depth2, user_depth3):
     #time_depth = get_depth_time_series('True')    
@@ -749,17 +752,15 @@ def user_to_depth(user_depth, user_depth2, user_depth3):
 
 
 if __name__ == "__main__":
-    foldername = 'Image/20181005'
+    foldername = 'Image/20181017/Propagation'
     #depth_cdf()
    # max_depth_per_rumor()
-    #time_to()
-    #time_to_depth()    
-    #time_to_depth_echo_chamber()
-    #echo_chamber_depth()
+    time_to_depth()    
+    #propagation_to_depth_politic('Data/echo_chamber2.json')
+    #time_to_depth_echo_chamber('Data/echo_chamber2.json')
 
-    
-    propagation_to_depth_politic('Data/echo_chamber2.json')
     #depth_politics_cdf()
+
 
 
 

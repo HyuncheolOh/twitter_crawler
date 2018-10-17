@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 from cycler import cycler
 
 class LinePlot:
@@ -21,6 +22,11 @@ class LinePlot:
                 ax.plot(data[i], label=label, linewidth=2.0)
         ax.set_xlabel(self.x_label, fontsize=16);
         ax.set_ylabel(self.y_label, fontsize=16);
+
+    def set_sns_plot(self, data):
+        sns.set_style("darkgrid")
+        self.ax = sns.lineplot(x="depth", y="time", hue="type", data=data)
+	self.fig.savefig('Image/20181017/line22222.png', bbox_inches='tight')
 
     def set_plot_data(self, data, label):
         #self.ax.set_xscale('log', nonpox='clip')
