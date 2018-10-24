@@ -27,6 +27,16 @@ def rumor_propagation_velocity(filename):
 
     echo_v = []
     necho_v = []
+
+    #propagation time to all node's children
+    #parent --> last child 
+    echo_p = {}
+    necho_p = {}
+    for i in range(1, 20):
+        echo_p[i] = []
+        necho_p[i] = []
+    
+    tweet_depth = {}
         
     for ccc, postid in enumerate(files):
         with open(dirname + postid, 'r') as f:
@@ -66,6 +76,7 @@ def rumor_propagation_velocity(filename):
                 #time or tweet? 
                 
                 parent_child[parent].append(new_list[i][1])
+                tweet_depth[parent] = tweets[parent]['depth']
             else:
                 #root tweet of cascade 
                 parent_child[parent] = [new_list[i][1]]
@@ -75,44 +86,53 @@ def rumor_propagation_velocity(filename):
                 if tweets[tid]['parent'] in echo_chamber_users[postid]:
                     echo_chamber_parent[parent] = 1
         
-
+        
         #insert time diff from start time 
         parent_child_diff = {}
+        parent_child_median_diff = {}
         for key in parent_child.keys():
-            parent_child_diff[key] = []
             times = parent_child[key]
+            #print(times)
+            #print((max(times) - min(times)).total_seconds() / 60)
+            parent_child_diff[key]= ((max(times) - min(times)).total_seconds() / 60)
+
+            parent_child_median_diff[key] = []
             for i, time in enumerate(times):
                 if i == 0 :
                     start_time = time
                     continue
-                parent_child_diff[key].append((time-start_time).total_seconds() / 60)
+                parent_child_median_diff[key].append((time-start_time).total_seconds() / 60)
 
         echo_parent = 0
         necho_parent =0 
         for key in parent_child_diff:
             if key in echo_chamber_parent.keys():
-#                print('echo', parent_child_diff[key])
                 echo_parent += 1
-                if len(parent_child_diff[key]) == 0:
+                #if len(parent_child_diff[key]) == 0:
+                if parent_child_diff[key] == 0:
                     continue
-                echo_v.append(np.mean(parent_child_diff[key]))
+                #echo_p[tweet_depth[key]].append(parent_child_diff[key])
+                echo_p[tweet_depth[key]].append(np.median(parent_child_median_diff[key]))
+                echo_v.append(parent_child_diff[key])
+                #echo_v.append(np.median(parent_child_diff[key]))
             else:
-#                print('non echo', parent_child_diff[key])
                 necho_parent += 1
-                if len(parent_child_diff[key]) == 0:
+                #if len(parent_child_diff[key]) == 0:
+                if parent_child_diff[key] == 0:
                     continue
 
-                necho_v.append(np.mean(parent_child_diff[key]))
-
-        #print(postid, echo_parent, necho_parent)
+                #necho_p[tweet_depth[key]].append(parent_child_diff[key])
+                necho_p[tweet_depth[key]].append(np.median(parent_child_median_diff[key]))
+                necho_v.append(parent_child_diff[key])
+                #necho_v.append(np.median(parent_child_diff[key]))
+        #print('echo')
+        #print(echo_p)
+        #print('necho')
+        #print(necho_p)
         #if ccc == 10:
         #    break
-        #print(echo_v)
-        #print(necho_v)
-    #return 0
-    #print('echo', echo_v)
-    #print('necho', necho_v)
-    return echo_v, necho_v
+
+    return echo_v, necho_v, echo_p, necho_p
 
 #check the taken time to the specific group (all users in the group)
 #taken time from root to a user OR 
@@ -253,7 +273,7 @@ def propagation_parent_to_child():
 
         #if not util.is_politics(postid):
         #if not util.is_non_politics(postid):
-        #if not util.is_veracity(postid, 'True'):
+        #if not util.is_veracity(postid, 'False'):
         #if not util.is_veracity(postid, 'Mixture,Mostly False,Mostly True'):
         #    continue 
 
@@ -317,7 +337,6 @@ def propagation_parent_to_child():
     box.set_multiple_data([e_child, ne_child])
     box.set_ylog()
     box.set_label('Depth', 'Child Count')
-    box.set_title('Mean child count of a node')
     box.save_image('Image/%s/child_num_wo_propagation.png'%folder)
     
     for i in range(1, 20):
@@ -331,7 +350,6 @@ def propagation_parent_to_child():
     box.set_multiple_data([e_time, ne_time])
     box.set_ylog()
     box.set_label('Depth', 'Propagation Time')
-    box.set_title('Mean propagation time to a child from a node')
     box.save_image('Image/%s/child_time_propagation.png'%folder)
   
     #print(e_child)
@@ -342,17 +360,26 @@ def propagation_parent_to_child():
 
         
 def draw_propagation_velocity():
-    echo_v2, _ = rumor_propagation_velocity('Data/echo_chamber2.json')
-    echo_v3, _ = rumor_propagation_velocity('Data/echo_chamber3.json')
-    echo_v4, _ = rumor_propagation_velocity('Data/echo_chamber4.json')
-    _, non_echo = rumor_propagation_velocity(None)
-    print(len(echo_v2), len(echo_v3), len(echo_v4), len(non_echo))
+    echo_v2, _, echo_p2, necho_p2 = rumor_propagation_velocity('Data/echo_chamber2.json')
+    #echo_v3, _ = rumor_propagation_velocity('Data/echo_chamber3.json')
+    #echo_v4, _ = rumor_propagation_velocity('Data/echo_chamber4.json')
+    _, non_echo, _, _ = rumor_propagation_velocity(None)
+    #print(len(echo_v2), len(echo_v3), len(echo_v4), len(non_echo))
 
     box = BoxPlot(1)
-    box.set_data([echo_v2, echo_v3, echo_v4, non_echo],'')
-    box.set_xticks(['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4', 'All'])
+    box.set_data([echo_v2,  non_echo],'')
+    box.set_xticks(['Echo Chamber2', 'All'])
+
+    #box.set_data([echo_v2, echo_v3, echo_v4, non_echo],'')
+    #box.set_xticks(['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4', 'All'])
     box.set_label('', 'Mean Propagation Time')
-    box.save_image('Image/20181001/propagation_time.png')
+    box.save_image('Image/%s/propagation_time.png'%folder)
+
+    box = BoxPlot(1)
+    box.set_multiple_data([echo_p2, necho_p2])
+    box.set_ylog()
+    box.set_label('Depth', 'Propagation Time')
+    box.save_image('Image/%s/child_all_time_propagation.png'%folder)
 
 def draw_propagation_time_to_group():
     print('echo chamber 2')
@@ -361,13 +388,13 @@ def draw_propagation_time_to_group():
     box.set_data([echo_v2, necho_v2],'')
     box.set_xticks(['Echo Chamber', 'Non Echo Chamber'])
     box.set_label('', 'Propagation Time')
-    box.save_image('Image/20181001/propagation_time_to_group2.png')
+    box.save_image('Image/%s/propagation_time_to_group2.png'%folder)
 
     box = BoxPlot(1)
     box.set_data([recho_v2, rnecho_v2],'')
     box.set_xticks(['Echo Chamber', 'Non Echo Chamber'])
     box.set_label('', 'Propagation Time')
-    box.save_image('Image/20181001/propagation_time_to_group_r2.png')
+    box.save_image('Image/%s/propagation_time_to_group_r2.png'%folder)
 
     print('echo chamber 3')
     echo_v3, necho_v3, recho_v3, rnecho_v3 = propagation_time_to_group('Data/echo_chamber3.json')
@@ -375,13 +402,13 @@ def draw_propagation_time_to_group():
     box.set_data([echo_v3, necho_v3],'')
     box.set_xticks(['Echo Chamber', 'Non Echo Chamber'])
     box.set_label('', 'Propagation Time')
-    box.save_image('Image/20181001/propagation_time_to_group3.png')
+    box.save_image('Image/%s/propagation_time_to_group3.png'%folder)
 
     box = BoxPlot(1)
     box.set_data([recho_v3, rnecho_v3],'')
     box.set_xticks(['Echo Chamber', 'Non Echo Chamber'])
     box.set_label('', 'Propagation Time')
-    box.save_image('Image/20181001/propagation_time_to_group_r3.png')
+    box.save_image('Image/%s/propagation_time_to_group_r3.png'%folder)
 
     print('echo chamber 4')
     echo_v4, necho_v4, recho_v4, rnecho_v4= propagation_time_to_group('Data/echo_chamber4.json')
@@ -389,13 +416,13 @@ def draw_propagation_time_to_group():
     box.set_data([echo_v4, necho_v4],'')
     box.set_xticks(['Echo Chamber', 'Non Echo Chamber'])
     box.set_label('', 'Propagation Time')
-    box.save_image('Image/20181001/propagation_time_to_group4.png')
+    box.save_image('Image/%s/propagation_time_to_group4.png'%folder)
  
     box = BoxPlot(1)
     box.set_data([recho_v4, rnecho_v4],'')
     box.set_xticks(['Echo Chamber', 'Non Echo Chamber'])
     box.set_label('', 'Propagation Time')
-    box.save_image('Image/20181001/propagation_time_to_group_r4.png')
+    box.save_image('Image/%s/propagation_time_to_group_r4.png'%folder)
   
     _, non_echo, _, rnon_echo = propagation_time_to_group(None)
     print(len(echo_v2), len(echo_v3), len(echo_v4), len(non_echo))
@@ -404,21 +431,19 @@ def draw_propagation_time_to_group():
     box.set_data([echo_v2, echo_v3, echo_v4, non_echo],'')
     box.set_xticks(['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4', 'All'])
     box.set_label('', 'Propagation Time')
-    box.save_image('Image/20181001/propagation_time_to_group.png')
+    box.save_image('Image/%s/propagation_time_to_group.png'%folder)
 
     box = BoxPlot(1)
     box.set_data([recho_v2, recho_v3, recho_v4, rnon_echo],'')
     box.set_xticks(['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4', 'All'])
     box.set_label('', 'Propagation Time')
-    box.save_image('Image/20181001/propagation_time_to_group_r.png')
+    box.save_image('Image/%s/propagation_time_to_group_r.png'%folder)
 
 if __name__ == "__main__":
-    folder = '20181016'
+    folder = '20181020'
     start = time()
     #draw_propagation_velocity()
     #draw_propagation_time_to_group()
-
-    #propagation_time_to_group('Data/echo_chamber2.json')
     propagation_parent_to_child()
     end = time()
     print('%s takes'%(end - start))

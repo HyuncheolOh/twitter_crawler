@@ -277,15 +277,79 @@ def political_alignment():
         print('count zero users : %s'%count_zero_users)
         snsplot.draw_echo_plot(non_echo_user_score, non_echo_source_score, echo_user_score, echo_source_score, path)
 
+#compare ranked echo chamber user's political diversity 
+def source_diversity_rank_comparison(filename):
+    source_politic_score = {}
+
+    #load source information file
+    with open('Data/top500.tab', 'r') as f:
+        i = 0
+        for row in f:
+            if i != 0:
+                items = row.split('\t')
+                items[0] = items[0].replace("www.", "")
+                source_politic_score[items[0]] = (float(items[1]) + 1) / 2 
+            i += 1
+    #print(source_politic_score.keys())
+    source_list = source_politic_score.keys()
+    #check users political score in the rumor propagation
+    timeline_dir = '../Timeline/'
+
+    with open(filename, 'r') as f:
+        echo_chambers = json.load(f)
+
+    for postid in echo_chambers:
+        users = echo_chambers[postid]
+
+        user_score = []
+        source_score = []
+        for user in users: 
+            try:
+                with open(timeline_dir + user, 'r') as f:
+                    user_tweets = json.load(f)
+            except IOError as e:
+                #print(e)
+                err +=1
+                continue
+            except ValueError as e:
+                err += 1
+                continue
+     
+            urls, expanded_urls = timeline_urls(user_tweets)
+            if len(urls) == 0:
+                continue 
+
+            count =0 
+            p_sum = 0 
+            for url in urls:
+                if url in source_list:
+                    count += 1
+                    idx = source_list.index(url)
+                    #print(url, source_politic_score.keys()[idx], source_politic_score[source_politic_score.keys()[idx]])
+                    p_sum += source_politic_score[source_list[idx]]
+            if count == 0:
+                continue
+            p_mean = round(p_sum / count, 4)
+            user_politic_score = round(get_polarity(user),4)
+            if user_politic_score != None:
+                user_score.append(user_politic_score)
+                source_score.append(p_mean)
+          
+        path = '%s/SourcePolarity/%s'%(folder, postid)
+        if not os.path.exists('%s/SourcePolarity'%folder):
+            os.makedirs('%s/SourcePolarity'%folder)
+        
+        snsplot.draw_plot(user_score, source_score, path)
 
 if __name__ == "__main__":
-    folder = 'Image/20181017'
+    folder = 'Image/20181019'
     start = time()
     dir_name = 'RetweetNew/'
     #echo_chamber_diversity('Data/echo_chamber2.json')
     
     filename = 'Data/echo_chamber2.json'
-    echo_chamber_users = e_util.get_echo_chamber_users(filename)
-    political_alignment()
+    #echo_chamber_users = e_util.get_echo_chamber_users(filename)
+    #political_alignment()
+    source_diversity_rank_comparison('Data/ranked_weight2_echo_chamber.json')
     end = time()
     print('%s taken'%(end-start))

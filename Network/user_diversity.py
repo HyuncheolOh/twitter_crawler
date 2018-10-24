@@ -6,17 +6,15 @@ import pandas as pd
 import numpy as np
 import random
 import echo_chamber_util as e_util
+import random 
+import matplotlib
 from time import time 
 from draw_tools.box_plot import BoxPlot
 from draw_tools.cdf_plot import CDFPlot
 from draw_tools.line_plot import LinePlot
+from draw_tools.scatter_plot import ScatterPlot
 import draw_tools.pdf as pdf
-import random 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from scipy.stats.kde import gaussian_kde
-from scipy.stats import norm
+
 
 P = None
 def get_polarity(userid):
@@ -29,30 +27,14 @@ def get_polarity(userid):
     try:
         #put in the bucket
         p = float(P[userid])
-        """
-        if p < -1.2:
-            return -2
-        elif p < -0.4:
-            return -1
-        elif p < 0.4:
-            return 0
-        elif p < 1.2:
-            return 1
-        else:
-            return 2
-        """
-        """
-        if p < 0:
-            return -1
-        else:
-            return 1
-        """
         if p > 2:
             p = 2
         elif p < -2:
             p = -2
 
-        return p / 2 #return -1 ~ 1 
+        #return p / 2 #return -1 ~ 1 
+        p += 2 
+        return p / 4 #return -1 ~ 1 
     except KeyError as e:
         return -999
 
@@ -67,7 +49,49 @@ def get_random_user(users, num):
             if len(user_list) == num:
                 break
     return user_list
- 
+
+#return mean, median polarity of users 
+def median_polarity(users):
+    if len(users) < 2:
+        return None
+
+    similarities = [] 
+    for i in range(len(users)):
+        users1 = users[i]
+        p1 = get_polarity(users1)
+        for j in range(i +1, len(users)):
+            users2 = users[j]
+            p2 = get_polarity(users2)
+
+            if p1 == -999 or p2 == -999:
+                continue
+            similarity = p1 * p2
+            similarities.append(similarity)
+        
+   
+    return round(np.mean(similarity),2), round(np.median(similarity),2)
+    
+def get_user_polarity(users):
+    if len(users) < 2:
+        return None
+
+    similarities = [] 
+    for i in range(len(users)):
+        users1 = users[i]
+        p1 = get_polarity(users1)
+        for j in range(i +1, len(users)):
+            users2 = users[j]
+            p2 = get_polarity(users2)
+
+            if p1 == -999 or p2 == -999:
+                continue
+            similarity = p1 * p2
+            similarities.append(similarity)
+        
+    return similarities
+
+
+
 #find mutual follower or have common friends 
 def diversity(filename):
     index = filename.replace(".json", "").split('echo_chamber')
@@ -350,13 +374,13 @@ def edge_homogeneity():
 
 #mean edge homogeneity 
 #mean of a node and its all children
-def mean_edge_homogeneity():
+def mean_edge_homogeneity(filename):
     #compare with echo chamber node's edge homogeneity
     echo_chamber_users = {}
     e_homogeneity = []
     ne_homogeneity = []
     retweet_cache = {}
-    echo_chamber_users = e_util.get_echo_chamber_users('Data/echo_chamber2.json')
+    echo_chamber_users = e_util.get_echo_chamber_users(filename)
     
 
     parent_child = {}
@@ -408,6 +432,8 @@ def mean_edge_homogeneity():
                     ne_homogeneity.append(mean_edge_homogeneity)
        
     pdf.draw_pdf({'e': e_homogeneity, 'ne': ne_homogeneity}, 'Mean Edge Homogeneity', ['Echo Chambers' , 'Non Echo Chambers'], 'Image/%s/mean_edge_homogeneity.png'%foldername)
+
+    return e_homogeneity
 
 
 
@@ -475,9 +501,10 @@ def echo_chamber_similarity():
         postid = files[random.randrange(0, rumor_num)]
 
         if retweet_cache.get(postid, None) == None:
-            with open(dir_name + postid, 'r') as f:
-                tweets = json.load(f)
-                retweet_cache[postid] = tweets
+            f = open(dir_name + postid, 'r')
+            tweets = json.load(f)
+            retweet_cache[postid] = tweets
+            f.close()
         else:
             tweets = retweet_cache[postid]
     
@@ -497,19 +524,123 @@ def echo_chamber_similarity():
 
 
 
-    draw_cdf_plot([similarities, similarities2], 'Homogeneity', ['Echo Chamber', 'Random Sampling'], 'User Type', 'echo_chamber_political_diversity')
+    #draw_cdf_plot([similarities, similarities2], 'Homogeneity', ['Echo Chamber', 'Random Sampling'], 'User Type', 'echo_chamber_political_diversity')
     pdf.draw_pdf({'e': similarities, 'ne': similarities2}, 'Homogeneity', ['Echo Chamber', 'Random Sampling'], 'Image/%s/echo_chamber_political_diversity_pdf.png'%foldername)
 
+
+#compare general echo chamber users and ranked degree echo chamber users 
+def echo_chamber_similarity_ranked():
+    files = ['Data/echo_chamber2.json', 'Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
+    #files = ['Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
+    #files = ['Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
+    
+
+    similarities = {}
+    for i in range(6):
+        similarities[i] = []
+
+    for f_index, ranked_f in enumerate(files):
+        print(ranked_f)
+        with open(ranked_f, 'r') as f:
+            echo_chamber = json.load(f)
+            for key in echo_chamber.keys():
+                print(key)
+                users = echo_chamber[key]
+                if len(users) < 2:
+                    continue
+
+                if type(users) == dict:
+                    users = users.keys()
+                #check similarity 
+                for i in range(len(users)):
+                    users1 = users[i]
+                    p1 = get_polarity(users1)
+                    for j in range(i +1, len(users)):
+                        users2 = users[j]
+                        p2 = get_polarity(users2)
+
+                        if p1 == -999 or p2 == -999:
+                            continue
+                        similarity = p1 * p2
+                        similarities[f_index].append(similarity)
+
+    #compare ranked echo chambers based on weight filtering 
+    pdf.draw_multiline_pdf([similarities[i] for i in range(6)], 'Homogeneity', ['All Echo Chamber', 'Weight 2', 'Weight 5', 'Weight 10', 'Weight 50', 'Weight 100'], 'Image/%s/echo_chamber_political_diversity_rank_pdf.png'%foldername)
+    draw_cdf_plot([similarities[i] for i in range(6)], 'Homogeneity', ['All Echo Chamber', 'Weight 2', 'Weight 5', 'Weight 10', 'Weight 50', 'Weight 100'], 'Echo Chamber Type', 'echo_chamber_political_diversity_rank_cdf')
+
+def mean_edge_homogeneity_comparison():
+    #files = ['Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
+    #pdf.draw_multiline_pdf([mean_edge_homogeneity(ranked_f) for ranked_f in files], 'Homogeneity', ['Weight 2', 'Weight 5', 'Weight 10', 'Weight 50', 'Weight 100'], 'Image/%s/echo_chamber_mean_edge_homogeneity_rank_pdf.png'%foldername)
+    files = ['Data/echo_chamber2.json', 'Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
+    pdf.draw_multiline_pdf([mean_edge_homogeneity(ranked_f) for ranked_f in files], 'Mean Edge Homogeneity', ['All Echo Chamber', 'Weight 2', 'Weight 5', 'Weight 10', 'Weight 50', 'Weight 100'], 'Image/%s/echo_chamber_mean_edge_homogeneity_rank_pdf.png'%foldername)
+
+#echo chamber's group homogeneity median value per size
+def echo_chamber_group_homogeneity_size():
+    filename = 'Data/echo_chamber2.json'
+    #echo_chamber_users = e_util.get_echo_chamber_users(filename)
+
+    f = open(filename, 'r') 
+    echo_chamber = json.load(f)
+    f.close()
+    d = []
+    all_similarity = []
+    for ccc, key in enumerate(echo_chamber):
+        users = echo_chamber[key]
+        user_size = len(users)
+        
+        if ccc % 100 == 0:
+            print(ccc)
+
+        if user_size < 2:
+            continue
+        similarities = [] 
+        for i in range(len(users)):
+            users1 = users[i]
+            p1 = get_polarity(users1)
+            for j in range(i +1, len(users)):
+                users2 = users[j]
+                p2 = get_polarity(users2)
+
+                if p1 == -999 or p2 == -999:
+                    continue
+                similarity = p1 * p2
+                similarities.append(similarity)
+                all_similarity.append(round(similarity,2))
+            
+            
+        d.append({'size' : user_size, 'polarity' : round(np.median(similarity),2)})
+
+
+    size_list = [item['size'] for item in d]
+    polarity_list = [item['polarity'] for item in d]
+
+    #print(size_list)
+    scatter = ScatterPlot()
+    #scatter.set_log(True)
+    scatter.set_xlim(10000)
+    scatter.set_ylim(-1, 1.2)
+    scatter.set_data(size_list, polarity_list)
+    scatter.save_image('Image/%s/echo_chamber_polarity_size.png'%foldername)
+    
+    cdf = CDFPlot()
+    cdf.set_data(all_similarity,'')
+    cdf.set_data(polarity_list,'')
+    cdf.set_label('Polarity', 'CDF')
+    cdf.set_legends(['All', 'Median'], '')
+    cdf.save_image('Image/%s/echo_chamber_all_polarity_similarity_cdf.png'%foldername)
 
 
 if __name__ == "__main__":
     start = time()
-    foldername = '20181010'
+    foldername = '20181022'
     dir_name = 'RetweetNew/'
     #echo_chamber_diversity()
     #polarity_diversity()
     #edge_homogeneity()
     #mean_edge_homogeneity()
-    echo_chamber_similarity()
+    #echo_chamber_similarity()
+    #mean_edge_homogeneity_comparison()
+    #echo_chamber_similarity_ranked()
+    echo_chamber_group_homogeneity_size()
     end = time()
     print('%s taken'%(end-start))

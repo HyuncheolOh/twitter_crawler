@@ -7,6 +7,7 @@ import json, os, sys
 import numpy as np
 import echo_chamber_util as e_util
 import util as my_util
+import user_diversity as polar
 from time import time
 from operator import itemgetter
 from graph_tool import util
@@ -14,7 +15,9 @@ from graph_tool.all import *
 from draw_tools.cdf_plot import CDFPlot
 from draw_tools.ccdf_plot import CCDFPlot
 from draw_tools.line_plot import LinePlot
+from draw_tools.scatter_plot import ScatterPlot
 from sklearn.metrics import jaccard_similarity_score
+from scipy import stats
 
 #construct echo chamber network 
 def find_echo_chamber_network():
@@ -44,11 +47,14 @@ def find_echo_chamber_network():
     eprop = g.new_edge_property("string")
     eweight = g.new_edge_property("int")
     d = {}
+    rd = {}
     for key in keys:
         v = g.add_vertex()
-        vprop[v] = key
-        d[key] = v
+        d[key] = str(v)
+        rd[str(v)] = key
 
+    with open('Data/network_key.json', 'w') as f:
+        json.dump(rd, f)
 
     for i in range(0, len(keys)):
         key1 = keys[i]
@@ -64,13 +70,14 @@ def find_echo_chamber_network():
                 continue
             
             intersection = set(all_echo_chambers[key1]) & set(all_echo_chambers[key2])
-            if len(intersection) > 1:
+            if len(intersection) > 4:
                 #print(intersection)
                 #edge between key1 node & key2 node
                 v2 = d[key2]
                 e1 = g.add_edge(v1, v2)
                 #print(e1, len(intersection))
                 eprop[e1] = '%s_%s'%(str(v1), str(v2)) 
+                print('%s_%s'%(str(v1), str(v2))) 
                 eweight[e1] = len(intersection)
     
 
@@ -112,7 +119,7 @@ def find_echo_chamber_network():
     g.edge_properties['edge'] = eprop
     g.edge_properties['weight'] = eweight
     g.vertex_properties['vertex'] = vprop
-    g.save('Data/graph.xml.gz')
+    #g.save('Data/graph5.xml.gz')
     #graph_draw(g, output='graph.pdf')
 
 def jaccard_similarity(list1, list2):
@@ -168,13 +175,16 @@ def cascade_centrality_analysis(g, vprop, eweight):
 
     #degree, weighted degree rank 
     weighted_degree = {}
-    degree = {} 
+    degree = {}
+    node_num = 0
     for v in g.vertices():
         weighted_degree[v] = sum([eweight[e] for e in v.out_edges()])
 
     for i, num in enumerate(g.get_out_degrees(g.get_vertices())):
         degree[i] = num
 
+        if num > 0:
+            node_num += 1
 
     p_rank = {}; b_rank = {}; c_rank = {}
     i = 0
@@ -199,22 +209,31 @@ def cascade_centrality_analysis(g, vprop, eweight):
     #print(c_sort)
     c_breadth, c_depth, c_unique_users = e_util.get_cascade_max_breadth()
     
-    keys1 = [vprop[item[0]] for item in p_sort[:10]]
-    keys2 = [vprop[item[0]] for item in b_sort[:10]]
-    keys3 = [vprop[item[0]] for item in c_sort[:10]]
-    keys4 = [vprop[item[0]] for item in d_sort[:10]]
-    keys5 = [vprop[item[0]] for item in wd_sort[:10]]
+    num = node_num
+    print(node_num)
+    if num * 0.2 < 10:
+        num = 10 
+    else:
+        num = int(num * 0.2)
+    #num = 50
+    print('top %s rank echo chambers'%num)
+    keys1 = [vprop[item[0]] for item in p_sort[:num]]
+    keys2 = [vprop[item[0]] for item in b_sort[:num]]
+    keys3 = [vprop[item[0]] for item in c_sort[:num]]
+    keys4 = [vprop[item[0]] for item in d_sort[:num]]
+    keys5 = [vprop[item[0]] for item in wd_sort[:num]]
     keys = [vprop[item[0]] for item in p_sort] #for all cascade 
 
 
     #unique rumor set 
     temp = []; temp2 = []
-    for i in range(10):
+    for i in range(num):
         temp.extend(keys1[i].split('_'))
 
     for i in range(len(keys)):
         temp2.extend(keys[i].split('_'))
  
+    print(set(temp))
     print('unique rumors from top 10 echo chambers %s'%len(set(temp)))
     print('common rumor num : %s'%(len(set(temp) & set(temp2))))
 
@@ -231,6 +250,26 @@ def cascade_centrality_analysis(g, vprop, eweight):
     echo_chamber_users4 = get_unique_echo_chamber_users(echo_chamber, keys4) 
     echo_chamber_users5 = get_unique_echo_chamber_users(echo_chamber, keys5) 
     echo_chamber_users = get_unique_echo_chamber_users(echo_chamber, keys) 
+
+    #save echo chmabers ranked by degree
+    with open('Data/degree_ranked_users.json', 'w') as f:
+        json.dump(echo_chamber_users4, f)
+    with open('Data/pagerank_ranked_users.json', 'w') as f:
+        json.dump(echo_chamber_users1, f)
+    with open('Data/betweenness_ranked_users.json', 'w') as f:
+        json.dump(echo_chamber_users2, f)
+    with open('Data/closeness_ranked_users.json', 'w') as f:
+        json.dump(echo_chamber_users3, f)
+    with open('Data/weighted_degree_ranked_users.json', 'w') as f:
+        json.dump(echo_chamber_users5, f)
+
+    with open('Data/ranked_weight%s_echo_chamber.json'%weight_filter, 'w') as f:
+        json.dump(echo_chamber_users1, f)
+
+    with open('Data/ranked_echo_chambers%s.json'%weight_filter, 'w') as f:
+        json.dump({'p' : keys1, 'b' : keys2, 'c' : keys3, 'd' : keys4, 'w' : keys5}, f)
+    print("degree ranked echo chamber users are saved")        
+    return 
 
     #max_cascade1 = {};  max_cascade2 = {}; max_cascade3 = {}; max_cascade4 = {}; max_cascade5 = {}; max_cascade6 = {}; 
     #max_breadth1 = {};  max_breadth2 = {}; max_breadth3 = {}; max_breadth4 = {}; max_breadth5 = {}; max_breadth6 = {}; 
@@ -503,7 +542,7 @@ def draw_cdf_graph(datas, x_label, legends, legends_title, file_name, log_scale=
     cdf.save_image('%s/%s.png'%(folder_name, file_name))
 
 def analyze_echo_chamber_network():
-    g = load_graph('Data/graph.xml.gz')
+    g = load_graph(graph_name)
     vprop = g.vertex_properties['vertex']
     eprop = g.edge_properties['edge']
     eweight = g.edge_properties['weight']
@@ -516,7 +555,7 @@ def analyze_echo_chamber_network():
     
     cascade_centrality_analysis(g, vprop, eweight)
     #rumor_centrality_analysis(g, vprop)
-
+    return 
     v_count = 0
     e_count = 0 
     for v in g.vertices():
@@ -567,6 +606,7 @@ def analyze_echo_chamber_network():
     weight_distribution = []
     edges = g.get_edges()
     #for i, e in enumerate(g.get_edges()):
+    
     for i, e in enumerate(edges):
         if i % 1000000 == 0:
             print(i)
@@ -575,8 +615,8 @@ def analyze_echo_chamber_network():
     #print(weight_distribution)
     
     #edge_count = sum(g.get_out_degrees(g.get_vertices()))
-    edge_count = my_util.ncr(v_count,2)
-    weight_distribution.extend([0] * (edge_count - len(weight_distribution)))
+    #edge_count = my_util.ncr(v_count,2)
+    #weight_distribution.extend([0] * (edge_count - len(weight_distribution)))
     print('avg weight : %s'%(sum(weight_distribution) / len(weight_distribution)))
     print('median weight : %s'%np.median(weight_distribution))
 
@@ -620,11 +660,399 @@ def analyze_echo_chamber_network():
     #avg_path_length = sum([sum(i) for i in dist]) / (g.num_vertices()**2 - g.num_vertices())
     #print(avg_path_length)
 
+#tweet initiation ratio : the number of users who initate the tweet 
+#retweeted ratio : the number of tweets which are retweeted 
+def network_analysis():
+    files = ['Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
+    for num, filename in enumerate(files):
+        print(filename)
+        
+        with open(filename, 'r') as f:
+            echo_chamber = json.load(f)
+
+            for postid in echo_chamber:
+                depth = []
+                child = []
+                all_depth = []
+                all_child = []
+                users = echo_chamber[postid]
+
+                with open('RetweetNew/'+ postid, 'r') as fe:
+                    tweets = json.load(fe)
+
+                    for tweet in tweets.values():
+                        d = tweet['depth']
+                        c = tweet['child']
+                        all_depth.append(d)
+                        all_child.append(c)
+                        if tweet['user'] in users:
+                            depth.append(d)         
+                            child.append(c)
+
+                #count of depth 
+                print(postid, 'depth 1 count : %s / %s, %s / %s, %s / %s'%(depth.count(1)/len(depth), all_depth.count(1)/len(all_depth), depth.count(1), len(depth), all_depth.count(1), len(all_depth))) 
+
+        #CDF?
+        cdf = CDFPlot()
+        cdf.set_label('Depth', 'CDF')
+        cdf.set_log(True)
+        cdf.set_data(depth, 'Depth')
+        cdf.set_data(all_depth, 'Depth')
+        cdf.set_legends(['Ranked', 'All'], 'Depth')
+        cdf.save_image('%s/depth_cdf_%s.png'%(folder_name, num))
+
+        #CDF?
+        cdf = CDFPlot()
+        cdf.set_label('Child', 'CDF')
+        cdf.set_log(True)
+        cdf.set_data(child, 'Depth')
+        cdf.set_data(all_child, 'Depth')
+        cdf.set_legends(['Ranked', 'All'], 'Child')
+        cdf.save_image('%s/child_cdf_%s.png'%(folder_name, num))
+
+def rank_depth_distribution():
+    files = ['Data/pagerank_ranked_users.json', 'Data/betweenness_ranked_users.json', 'Data/closeness_ranked_users.json', 'Data/degree_ranked_users.json', 'Data/weighted_degree_ranked_users.json']   
+    all_postid = {}
+    rank_root_ratio = {}
+    for num, filename in enumerate(files):
+        print(filename)
+        rank_root_ratio[num] = []
+        
+        with open(filename, 'r') as f:
+            echo_chamber = json.load(f)
+
+            for postid in echo_chamber:
+                all_postid[postid] = 1
+                depth = []
+                child = []
+                users = echo_chamber[postid]
+
+                with open('RetweetNew/'+ postid, 'r') as fe:
+                    tweets = json.load(fe)
+
+                    for tweet in tweets.values():
+                        d = tweet['depth']
+                        c = tweet['child']
+                        if tweet['user'] in users:
+                            depth.append(d)         
+                            child.append(c)
+                print(depth.count(1)/len(depth))
+                rank_root_ratio[num].append(depth.count(1)/len(depth))
+
+    all_root_ratio = []
+    for postid in all_postid.keys():
+        depth = []
+        child = []
+        with open('RetweetNew/'+ postid, 'r') as fe:
+            tweets = json.load(fe)
+
+            for tweet in tweets.values():
+                d = tweet['depth']
+                c = tweet['child']
+                depth.append(d)         
+                child.append(c)
+            all_root_ratio.append(depth.count(1)/len(depth))
+
+    cdf = CDFPlot()
+    cdf.set_label('Depth', 'CDF')
+    for num in rank_root_ratio.keys():
+        print(num)
+        cdf.set_data(rank_root_ratio[num], 'Depth')
+
+    cdf.set_data(all_root_ratio, 'Depth')
+    cdf.set_legends(['Pagerank', 'Betweenness', 'Closeness', 'Degree', 'W-Degree', 'All'], 'Depth')
+    cdf.save_image('%s/depth_cdf_rank.png'%(folder_name))
+
+#correlation between polarity and weight 
+#correlation between weight and category sim.
+def polarity_weight_correlation():
+    g = load_graph(graph_name)
+    vprop = g.vertex_properties['vertex']
+    eprop = g.edge_properties['edge']
+    eweight = g.edge_properties['weight']
+
+    f = open('Data/network_key.json', 'r') 
+    v_keys = json.load(f)
+    f.close()
+
+    filename = 'Data/echo_chamber_polarization.json'
+    if os.path.exists(filename):
+        f = open(filename) 
+        json_data = json.load(f)
+        d_mean = json_data['mean']
+        d_median = json_data['median']
+        f.close()
+    else:
+        f = open('Data/echo_chamber2.json', 'r') 
+        echo_chamber = json.load(f)
+        f.close()
+
+        d_median = {}
+        d_mean = {}
+        for key in echo_chamber:
+            users = echo_chamber[key]
+            #users = echo_chamber[key].keys()
+
+            if len(users) < 2:
+                continue
+            
+            mean_p, median_p = polar.median_polarity(users)
+
+            d_mean[key] = mean_p
+            d_median[key] = median_p
+            
+        with open(filename, 'w') as f:
+            json.dump({'mean' : d_mean, 'median' : d_median}, f)
+   
+    dkeys = d_mean.keys() 
+
+    print('polarity calculation done for echo chambers')
+    f = open('Data/ranked_echo_chambers%s.json'%weight_filter, 'r') 
+    ranked_echo_chamber = json.load(f)
+    f.close()
+    print('ranked echo chamber : %s'%len(ranked_echo_chamber))
+    
+    echo_chamber_categories = {}
+    polar_mean_list = []
+    polar_median_list = []
+    weight_list = []
+    common_category_num_list = []
+    ranked_keys = ranked_echo_chamber['d']
+    category_mean_weight = {}
+    category_median_weight = {}
+    category_mean_polar = {}
+    category_median_polar = {}
+    is_politics = {}
+    median_v1 = []; median_v2 = []
+    mean_v1 = []; mean_v2 = []
+    """
+    for key in d_mean.keys():
+        p1 = key.split('_')
+        #if not my_util.is_politics(p1[0]) and not my_util.is_politics(p1[1]):
+        #    is_politics[key] = 0
+        #else :
+        #    is_politics[key] = 1
+        if my_util.is_politics(p1[0]) and my_util.is_politics(p1[1]):
+            is_politics[key] = 1
+        else :
+            is_politics[key] = 0
+
+    print('politics key fetch done')
+    """
+
+    for i in range(3):
+        category_mean_weight[i] = []
+        category_median_weight[i] = []
+        category_mean_polar[i] = []
+        category_median_polar[i] = []
+
+    if os.path.exists('Data/echo_chamber_categories.json'):
+        f = open('Data/echo_chamber_categories.json', 'r') 
+        echo_chamber_categories = json.load(f)
+        f.close()
+    else:
+        f = open('Data/echo_chamber2.json', 'r') 
+        echo_chamber_keys = json.load(f)
+        f.close()
+        for key in echo_chamber_keys:
+            echo_chamber_categories[key] = [my_util.get_category(item) for item in key.split('_')]
+
+        with open('Data/echo_chamber_categories.json', 'w') as f:
+            json.dump(echo_chamber_categories, f)
+    
+    print('category fetch done')
+
+    round_num = 1
+    for v in g.vertices():
+
+        v_string = vprop[v]
+#        print(v_string)
+        if v_string not in ranked_keys:
+            continue
+
+        postids = v_string.split('_')
+        for e in v.out_edges():
+
+            weight = eweight[e]
+            if weight < int(weight_filter):
+                continue
+            keys = eprop[e].split('_')
+            #print(v_keys[keys[0]], v_keys[keys[1]], eweight[e])
+        
+            key1 = v_keys[keys[0]]
+            key2 = v_keys[keys[1]]
+
+            #if not is_politics[key1] or not is_politics[key2]:
+            #    continue
+            
+            p_median = round(d_median[key1] * d_median[key2],round_num)
+            p_mean = round(d_mean[key1] * d_mean[key2],round_num)
+
+            median_v1.append(d_median[key1])
+            median_v2.append(d_median[key2])
+            mean_v1.append(d_mean[key1])
+            mean_v2.append(d_mean[key2])
+            #print(d_mean[key1], d_mean[key2])
+            polar_mean_list.append(p_mean)
+            polar_median_list.append(p_median)
+            weight_list.append(weight)
+
+            #category compare intersection of set (0 , 1, 2)
+            intersection = set(echo_chamber_categories[key1]) & set(echo_chamber_categories[key2])
+            common_category_num_list.append(len(intersection))
+            #print(len(intersection), weight)
+
+            category_median_weight[len(intersection)].append(weight)
+            category_mean_weight[len(intersection)].append(weight)
+
+            category_median_polar[len(intersection)].append(p_mean)
+            category_mean_polar[len(intersection)].append(p_median)
+
+        #weighted_degree.append([eweight[e] for e in v.out_edges()])
+    #print(polar_mean_list)
+    #print(weight_list)
+
+    print('median, mean weight')
+    print([np.median(category_median_weight[i]) for i in range(3)])
+    print([np.mean(category_mean_weight[i]) for i in range(3)])
+
+    print('median, mean polarity')
+    print([np.median(category_median_polar[i]) for i in range(3)])
+    print([np.mean(category_mean_polar[i]) for i in range(3)])
+
+    
+    numbers = np.arange(-1.1, 1.1, 0.01)
+    median_median = {}
+    mean_mean = {}
+    weight_polar = {}
+    weight_pearson_median = {}
+    weight_pearson_mean = {}
+    for key in weight_list:
+        weight_pearson_mean[key] = []
+        weight_pearson_median[key] = []
+        key = int(key / 10) * 10
+        weight_polar[key] = []
+
+    for num in numbers:
+        median_median[round(num,round_num)] = []
+        mean_mean[round(num,round_num)] = []
+    
+    #median of median
+    for i in range(len(polar_mean_list)):
+        median_median[polar_median_list[i]].append(weight_list[i])
+        mean_mean[polar_median_list[i]].append(weight_list[i])
+        weight_pearson_median[weight_list[i]].append((median_v1[i], median_v2[i]))
+        weight_pearson_mean[weight_list[i]].append((mean_v1[i], mean_v2[i]))
+        w_key = int(weight_list[i] / 10) * 10
+        weight_polar[w_key].append(polar_median_list[i])
+
+    pearson_list = []
+    for key in weight_pearson_mean.keys():
+        vectors = weight_pearson_mean[key]
+        v1 = [item[0] for item in vectors]
+        v2 = [item[1] for item in vectors]
+        #print(key, stats.pearsonr(v1, v2))
+        pearson_list.append(stats.pearsonr(v1, v2)[0])
+    print(weight_pearson_median.keys())
+    print(pearson_list)
+    print(len(weight_pearson_median.keys()), len(pearson_list))
+    scatter = ScatterPlot()
+    #scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_label('Weight', 'Pearson Correlation')
+    scatter.set_data(weight_pearson_median.keys(), pearson_list)
+    scatter.save_image('%s/echo_chamber_polarity_weight_pearson_median_%s.png'%(folder_name, weight_filter))
+    
+    #print(median_median)
+    #print(mean_mean)
+
+    scatter = ScatterPlot()
+    #scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_label('Median Polarity', 'Median Weight')
+    scatter.set_data(median_median.keys(), [np.median(item) for item in median_median.values()])
+    scatter.save_image('%s/echo_chamber_polarity_weight_median_median_%s.png'%(folder_name, weight_filter))
+    
+    scatter = ScatterPlot()
+    #scatter.set_log(True)
+    #scatter.set_ylog()
+    scatter.set_label('Average Polarity', 'Mean Weight')
+    scatter.set_data(median_median.keys(), [np.median(item) for item in median_median.values()])
+    scatter.set_data(mean_mean.keys(), [np.mean(item) for item in mean_mean.values()])
+    scatter.set_legends(['Median', 'Mean'],'')
+    scatter.save_image('%s/echo_chamber_polarity_weight_mean_mean_%s.png'%(folder_name, weight_filter))
+
+    #print(weight_polar.keys())
+    #print([item for item in weight_polar.values()])
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    #scatter.set_ylog()
+    scatter.set_label('Weight', 'Mean Polarity')
+    scatter.set_data(weight_polar.keys(), [np.mean(item) for item in weight_polar.values()])
+    scatter.save_image('%s/echo_chamber_polarity_weight_transpose_mean_%s.png'%(folder_name, weight_filter))
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    #scatter.set_ylog()
+    scatter.set_label('Weight', 'Mean Polarity')
+    scatter.set_data(weight_polar.keys(), [np.median(item) for item in weight_polar.values()])
+    scatter.save_image('%s/echo_chamber_polarity_weight_transpose_median_%s.png'%(folder_name, weight_filter))
+
+    draw_cdf_graph([category_mean_polar[0], category_mean_polar[1], category_mean_polar[2]], 'Homophily', ['num 0', 'num 1', 'num 2'], 'common category', 'echo_chamber_polarity_category_%s_cdf'%(weight_filter), log_scale=False)
+
+    scatter = ScatterPlot()
+    #scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_ylim(0, 1000)
+    scatter.set_label('Polarity', 'Mean Weight')
+    scatter.set_data(polar_mean_list, weight_list)
+    scatter.save_image('%s/echo_chamber_polarity_weight_mean.png'%folder_name)
+    
+    scatter = ScatterPlot()
+    #scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_ylim(0, 1000)
+    scatter.set_label('Polarity', 'Median Weight')
+    scatter.set_data(polar_median_list, weight_list)
+    scatter.save_image('%s/echo_chamber_polarity_weight_median.png'%folder_name)
+ 
+    polar_weight_file = 'Data/polarity_weight_correlation.json'
+    if os.path.exists(polar_weight_file):
+        with open(polar_weight_file, 'r') as f:
+            polar_weight_aggre = json.load(f)
+    else : 
+        polar_weight_aggre = {}
+    
+    polar_weight_aggre[weight_filter] = {'keys' : mean_mean.keys(), 'weight' : [np.mean(item) for item in mean_mean.values()]}
+    with open(polar_weight_file, 'w') as f:
+        json.dump(polar_weight_aggre, f)
+
+    print('polar aggre : %s'%len(polar_weight_aggre))
+    scatter = ScatterPlot()
+    #scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_label('Mean Polarity', 'Mean Weight')
+    for key in polar_weight_aggre.keys():
+        scatter.set_data(polar_weight_aggre[key]['keys'], polar_weight_aggre[key]['weight'])
+    scatter.set_legends([key for key in polar_weight_aggre.keys()], '')
+    scatter.save_image('%s/echo_chamber_polarity_weight_mean_aggre.png'%(folder_name))
+
+   
+
 if __name__ == "__main__":
-    folder_name = 'Image/20181016'
+    folder_name = 'Image/20181023'
+    graph_name = 'Data/graph%s.xml.gz'
     start = time()
     #find_echo_chamber_network()
-    jaccard_distribution()
-    analyze_echo_chamber_network()
+    #jaccard_distribution()
+    if len(sys.argv) > 1:
+        weight_filter = sys.argv[1]
+        graph_name = graph_name%weight_filter
+        print('load ', graph_name)
+    #analyze_echo_chamber_network()
+    #network_analysis()
+    #rank_depth_distribution()
+    polarity_weight_correlation()
     end = time()
     print('%s takes'%(end - start))
+

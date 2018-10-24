@@ -54,6 +54,28 @@ def is_veracity(postid, veracity):
     else:
         return True
 
+def get_veracity(postid):
+    conn, cursor = sql_connect()
+    if int(postid) < 100000:
+    #factchecking
+        sql = """
+        SELECT veracity
+        FROM factchecking_data
+        WHERE id = %s
+        """
+
+    else:
+    #snopes
+        sql = """
+        SELECT veracity
+        FROM snopes_set
+        WHERE post_id = %s 
+        """
+
+    cursor.execute(sql, [postid])
+    rs = cursor.fetchall()
+    sql_close(cursor, conn)
+    return rs[0][0]
 
 def get_category(postid):
     conn, cursor = sql_connect()

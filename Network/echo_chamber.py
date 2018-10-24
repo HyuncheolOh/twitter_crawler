@@ -379,16 +379,19 @@ def get_echo_chamber_users(file_name):
 
 
 #cascade : origin tweet for echo chamber user participated or not participated 
-def echo_chamber_cascade_analysis(file_name, veracity=None):
+def echo_chamber_cascade_analysis(file_name, veracity=None, echo_chamber_users=None):
     #get all echo chamber users per postid
     #file_name = 'Data/echo_chamber2.json'
-    with open(file_name) as f:
-        echo_chambers = json.load(f)
+    #with open(file_name) as f:
+    #    echo_chambers = json.load(f)
+
+    print('file name', file_name)
 
     Bot = bot.load_bot()
-    cascade_breadth, cascade_max_depth, cascade_unique_users = get_cascade_max_breadth()
+    cascade_breadth, cascade_max_depth, cascade_unique_users = e_util.get_cascade_max_breadth()
 
-    echo_chamber_users = get_echo_chamber_users(file_name)
+    if echo_chamber_users == None:
+        echo_chamber_users = get_echo_chamber_users(file_name)
     ccc = 0
     echo_chamber_values = {}
     non_echo_chamber_values = {} 
@@ -415,11 +418,12 @@ def echo_chamber_cascade_analysis(file_name, veracity=None):
         if veracity != None:
             if not get_veracity(postid, veracity):
                 continue
-        print(postid, 'echo chamber users : %s'%len(users))
+        #print(postid, 'echo chamber users : %s'%len(users))
 
         echo_chamber_origin = {}
         for tweet in tweets.values():
-            if tweet['user'] in users and tweet['depth'] == 1:
+            #if tweet['user'] in users and tweet['depth'] == 1:
+            if tweet['user'] in users:
             #from echo chamber root 
                 origin_tweet = tweet['origin_tweet']
                 echo_chamber_origin[origin_tweet] = 1
@@ -431,8 +435,8 @@ def echo_chamber_cascade_analysis(file_name, veracity=None):
 
         #non echo chamber cascade which do not contain origin tweet of echo chamber 
         for tweet in tweets.values():
-            #if bot.check_bot(Bot, user) != 0:
-            #    continue
+            if bot.check_bot(Bot, tweet['user']) != 0:
+                continue
             origin_tweet = tweet['origin_tweet']
             if not origin_tweet in echo_chamber_origin.keys():
                 non_echo_chamber_values['max_depth'][origin_tweet] = cascade_max_depth[origin_tweet]
@@ -585,22 +589,53 @@ def echo_chamber_political_cascade_analysis(veracity=None):
 #    return politics, non_politics
 
 def draw_echo_chamber_cascade_chracteristics():
-    '''
-    echo_chamber_values1, _ = echo_chamber_cascade_analysis('True')
-    echo_chamber_values2, _ = echo_chamber_cascade_analysis('False')
-    echo_chamber_values3, _ = echo_chamber_cascade_analysis('Mixture,Mostly True,Mostly False')
-
-    draw_cdf_plot([echo_chamber_values1['max_depth'].values(), echo_chamber_values2['max_depth'].values(), echo_chamber_values3['max_depth'].values()], 'Depth',['True', 'False', 'Mixed'], 'Veracity','Image/%s/echo_depth_veracity') 
-    draw_cdf_plot([echo_chamber_values1['max_breadth'].values(), echo_chamber_values2['max_breadth'].values(), echo_chamber_values3['max_breadth'].values()], 'Max Breadth',['True', 'False', 'Mixed'], 'Veracity','Image/%s/echo_breadth_veracity') 
-    draw_cdf_plot([echo_chamber_values1['cascade'].values(), echo_chamber_values2['cascade'].values(), echo_chamber_values3['cascade'].values()], 'Cascade',['True', 'False', 'Mixed'], 'Veracity','Image/%s/echo_cascade_veracity') 
-    draw_cdf_plot([echo_chamber_values1['unique_users'].values(), echo_chamber_values2['unique_users'].values(), echo_chamber_values3['unique_users'].values()], 'Numberof Users',['True', 'False', 'Mixed'], 'Veracity','Image/%s/echo_users_veracity') 
-    '''
-    
-    
+   
     start_time = time()
     echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber2.json')
     end_time = time()
     print('echo chamber2 takes %s'%(end_time - start_time))
+    
+    #echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber2.json')
+    draw_cdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_depth3'%folder) 
+    draw_cdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_breadth3'%folder) 
+    draw_cdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_cascade3'%folder) 
+    draw_cdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_unique_users3'%folder) 
+   
+    draw_ccdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_depth3_ccdf'%folder) 
+    draw_ccdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_breadth3_ccdf'%folder) 
+    draw_ccdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_cascade3_ccdf'%folder) 
+    draw_ccdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_unique_users3_ccdf'%folder) 
+
+    #degree ranked cascade 
+    with open('Data/degree_ranked_users.json', 'r') as f:
+        ranked_users = json.load(f)
+    ranked_echo, non_echo = echo_chamber_cascade_analysis(None, echo_chamber_users = ranked_users)
+
+    with open('Data/ranked_weight2_echo_chamber.json', 'r') as f:
+        ranked_users2 = json.load(f)
+    
+    with open('Data/ranked_weight5_echo_chamber.json', 'r') as f:
+        ranked_users5 = json.load(f)
+
+    with open('Data/ranked_weight10_echo_chamber.json', 'r') as f:
+        ranked_users10 = json.load(f)
+    
+    ranked_echo2, non_echo = echo_chamber_cascade_analysis(None, echo_chamber_users = ranked_users2)
+    ranked_echo5, non_echo = echo_chamber_cascade_analysis(None, echo_chamber_users = ranked_users5)
+    ranked_echo10, non_echo = echo_chamber_cascade_analysis(None, echo_chamber_users = ranked_users10)
+
+    draw_cdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values(), ranked_echo2['max_depth'].values(), ranked_echo5['max_depth'].values(), ranked_echo10['max_depth'].values()],
+            'Depth',['Echo Chamber', 'Non Echo Chamber', 'Ranked Weight 2', 'Ranked Weight 5', 'Ranked Weight 10'], 'User Type', 'Image/%s/echo_depth_ranked'%folder, log_scale=False) 
+    draw_cdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values(), ranked_echo2['max_breadth'].values(), ranked_echo5['max_breadth'].values(), ranked_echo10['max_breadth'].values()], 
+            'Breadth',['Echo Chamber', 'Non Echo Chamber','Ranked Weight 2', 'Ranked Weight 5', 'Ranked Weight 10'], 'User Type', 'Image/%s/echo_breadth_ranked'%folder) 
+    draw_cdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values(), ranked_echo2['cascade'].values(), ranked_echo5['cascade'].values(), ranked_echo10['cascade'].values()], 'Cascade',
+        ['Echo Chamber', 'Non Echo Chamber','Ranked Weight 2', 'Ranked Weight 5', 'Ranked Weight 10'], 'User Type', 'Image/%s/echo_cascade_ranked'%folder) 
+    draw_cdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values(), ranked_echo2['unique_users'].values(), ranked_echo5['unique_users'].values(), ranked_echo10['unique_users'].values() ], 
+        'Number of users',['Echo Chamber', 'Non Echo Chamber','Ranked Weight 2', 'Ranked Weight 5', 'Ranked Weight 10'], 'User Type', 'Image/%s/echo_unique_users_ranked'%folder) 
+    
+    print('ranked cascade calculation done')
+   
+    
     start_time = time()
     echo_chamber_values2, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber3.json')
     end_time = time()
@@ -610,18 +645,12 @@ def draw_echo_chamber_cascade_chracteristics():
     end_time = time()
     print('echo chamber4 takes %s'%(end_time - start_time))
 
-    #echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber2.json')
-    draw_cdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_depth3'%folder, log_scale=False) 
-    draw_cdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_breadth3'%folder) 
-    draw_cdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_cascade3'%folder) 
-    draw_cdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_unique_users3'%folder) 
-
     draw_cdf_plot([echo_chamber_values['max_depth'].values(), echo_chamber_values2['max_depth'].values(), echo_chamber_values3['max_depth'].values()], 'Depth',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/%s/echo_depth2'%folder, log_scale=False) 
     draw_cdf_plot([echo_chamber_values['max_breadth'].values(), echo_chamber_values2['max_breadth'].values(), echo_chamber_values3['max_breadth'].values()], 'Breadth',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/%s/echo_breadth2'%folder) 
     draw_cdf_plot([echo_chamber_values['cascade'].values(), echo_chamber_values2['cascade'].values(), echo_chamber_values3['cascade'].values()], 'Cascade',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/%s/echo_cascade2'%folder) 
     draw_cdf_plot([echo_chamber_values['unique_users'].values(), echo_chamber_values2['unique_users'].values(), echo_chamber_values3['unique_users'].values()], 'Number of users',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/%s/echo_unique_users2'%folder) 
-
-
+    
+    
 
 def echo_chamber_user_analysis():
     #get all echo chamber users per postid
@@ -996,6 +1025,42 @@ def echo_chamber_rumor_spread():
 
         print('Nodes receive rumors from echo chambers users : %s, child : %s all tweets : %s'%(is_echo, from_echo, all_node))
 
+#distribution of cascade per depth 
+#1,2,3,4,5
+#1~2, 3~maximum
+def depth_analysis():
+    echo_chamber_users = e_util.get_echo_chamber_users('Data/echo_chamber2.json')
+    files = os.listdir('RetweetNew')
+
+    d = {}
+    for i in range(1, 20):
+        d[i] = []
+   
+    for ccc, postid in enumerate(files):
+        users = echo_chamber_users[postid]
+
+        with open('RetweetNew/' + postid, 'r') as f:
+            tweets = json.load(f)
+
+            for tweet in tweets.values():
+                if tweet['user'] in users:
+                    d[tweet['depth']].append(tweet['cascade'])
+
+
+    draw_cdf_plot([d[i] for i in range(1,5)], 'Cascade Size', ['1', '2', '3', '4'], 'Depth', 'Image/%s/cascade_size_per_depth'%folder)
+    a = []; b = []
+    a.extend(d[1])
+    a.extend(d[2])
+    for i in range(3,15):
+        b.extend(d[i]) 
+    draw_cdf_plot([a, b], 'Cascade Size', ['1-2', '3-max'], 'Depth', 'Image/%s/cascade_size_per_depth2'%folder)
+
+
+    draw_ccdf_plot([d[i] for i in range(1,5)], 'Cascade Size', ['1', '2', '3', '4'], 'Depth', 'Image/%s/cascade_size_per_depth_ccdf'%folder)
+    draw_ccdf_plot([a, b], 'Cascade Size', ['1-2', '3-max'], 'Depth', 'Image/%s/cascade_size_per_depth2_ccdf'%folder)
+
+    print('done')
+    
 def draw_cdf_plot(datas, datatype, legend, legend_type, filename, log_scale=True):
     cdf = CDFPlot()
     cdf.set_label(datatype, 'CDF')
@@ -1018,22 +1083,26 @@ def draw_ccdf_plot(datas, datatype, legend, legend_type, filename, log_scale=Tru
 
 if __name__ == "__main__":
     #following_anlysis()
-    folder = '20181017' 
+    folder = '20181022' 
     dirname = 'RetweetNew/'
+    start = time()
     #find_echo_chamber(2)
     #find_echo_chamber(3)
     #find_echo_chamber(4)
     #find_echo_chamber(5)  not working because of memory problem
     
     #draw_statistics()
-    draw_echo_chamber_true_false()
+    #draw_echo_chamber_true_false()
     #propagation_within_echo_chamber()
-    #draw_echo_chamber_cascade_chracteristics()
+    draw_echo_chamber_cascade_chracteristics()
     #echo_chamber_rumor_spread()
     #echo_chamber_political_cascade_analysis('False')
+    #depth_analysis()
 
     #echo_chamber_anlysis('Data/echo_chamber2.json', 'True')
     #echo_chamber_user_analysis()
     #draw_echo_chamber_user_characteristics()
     #draw_echo_chamber_user_analysis()
-    
+
+    end = time()
+    print('%s taken'%(end-start))

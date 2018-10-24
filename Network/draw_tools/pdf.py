@@ -8,6 +8,24 @@ from scipy.stats import norm
 
 
 
+def draw_multiline_pdf(data, xlabel, legends, path):
+    fig = plt.figure(figsize=(7,7));
+    ax = fig.add_subplot(1,1,1);
+    x = np.arange(-1, 1.1, 0.1)
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    for i in range(len(data)):
+        d1_np = np.array(data[i])
+        #print(d1_np)
+        KDEpdf = gaussian_kde(d1_np)
+        ax.plot(x, KDEpdf(x), 'r', label=legends[i], color=colors[i])
+
+    plt.legend(loc=4)
+    ax.set_ylabel('PDF', fontsize=20);
+    ax.set_xlabel(xlabel, fontsize=20);
+    plt.savefig(path, bbox_inches='tight')
+    plt.savefig(path+'.eps', bbox_inches='tight')
+
+
 def draw_pdf(data, xlabel, legends, path):
 #    plt.style.use("ggplot")
 
@@ -45,3 +63,4 @@ def draw_pdf(data, xlabel, legends, path):
     ax.set_xlabel(xlabel, fontsize=20);
 
     plt.savefig(path, bbox_inches='tight')
+    plt.savefig(path+'.eps', bbox_inches='tight')

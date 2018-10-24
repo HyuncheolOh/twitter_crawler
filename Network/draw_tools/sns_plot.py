@@ -6,18 +6,35 @@ import seaborn as sns
 import pandas as pd
 
 def draw_plot(x, y, filename):
-    #mean, cov = [0, 1], [(1, .5), (.5, 1)]
-    #data = np.random.multivariate_normal(mean, cov, 200)
-    #print(data)
-    #df = pd.DataFrame(data, columns=["x", "y"])
-    df = pd.DataFrame({'User Polarity':x, 'Content Polarity':y})
-    #sns_plot = sns.jointplot(x="x", y="y", data=df);
-    g = sns.JointGrid(x="User Polarity", y="Content Polarity", xlim=(-1, 1), ylim=(-1, 1), data=df)
-    g = g.plot(sns.regplot, sns.distplot)
-    #axes = sns_plot.axes
-    #sns_plot.set_ylim([-1, 1])
-    g.savefig(filename)
-    
+    df = pd.DataFrame({'User Polarity':x, 'Content Polarity':y })
+
+    height = 10
+    ratio = 2
+    f = plt.figure(figsize=(height, height))
+    gs = plt.GridSpec(ratio + 1, ratio + 1)
+
+    ax_joint = f.add_subplot(gs[1:, :-1])
+    ax_marg_x = f.add_subplot(gs[0, :-1], sharex=ax_joint)
+    ax_marg_y = f.add_subplot(gs[1:, -1], sharey=ax_joint)
+
+    #set label
+    #ax_marg_x.set_xlabel('User Polarity', fontsize = 16)
+    #ax_marg_y.set_ylabel('Content Polarity', fontsize = 16)
+    ax_joint.set_xlabel('User Polarity', fontsize = 20)
+    ax_joint.set_ylabel('Content Polarity', fontsize = 20)
+
+    g = sns.regplot(x="User Polarity", y="Content Polarity", data = df, ax=ax_joint, color='g', label='Echo Chamber')
+    g.set(ylim=(0,1))
+    g.set(xlim=(0,1))
+  
+    #f.legend((g1, g2), ('Non Echo Chamber', 'Echo Chamber'))
+    sns.kdeplot(df['User Polarity'], ax=ax_marg_x, shade=True, color='g', legend=False)
+    sns.kdeplot(df['Content Polarity'], ax=ax_marg_y, shade=True, color='g', vertical=True, legend=False)
+
+    #f = plot.figure
+    plt.savefig(filename, bbox_inches='tight')  
+    plt.savefig(path + '.eps', bbox_inches='tight')
+
 def draw_echo_plot(x, y, x2, y2, filename):
     x_all = list(x)
     x_all.extend(x2)
@@ -58,3 +75,4 @@ def draw_echo_plot(x, y, x2, y2, filename):
 
     #f = plot.figure
     plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(path + '.eps', bbox_inches='tight')

@@ -143,3 +143,4 @@ class CDFPlot:
 
     def save_image(self, path):
 	self.fig.savefig(path, bbox_inches='tight')
+	self.fig.savefig(path+'.eps', bbox_inches='tight')

@@ -467,18 +467,57 @@ def time_to_depth_echo_chamber(filename):
     print("time series data load done ")
     echo_chamber_values = {}
     non_echo_chamber_values = {} 
+    dranked_echo_chamber_values = {}
+    pranked_echo_chamber_values = {}
+    branked_echo_chamber_values = {}
+    cranked_echo_chamber_values = {}
+    wranked_echo_chamber_values = {}
+    
     for item in ['time_depth', 'user_depth']:
         echo_chamber_values[item] = {}
         non_echo_chamber_values[item] = {}
+        dranked_echo_chamber_values[item] = {}
+        pranked_echo_chamber_values[item] = {}
+        branked_echo_chamber_values[item] = {}
+        cranked_echo_chamber_values[item] = {}
+        wranked_echo_chamber_values[item] = {}
 
         for i in range(1,20):
             echo_chamber_values[item][i] = []
             non_echo_chamber_values[item][i] = []
+            dranked_echo_chamber_values[item][i] = []
+            pranked_echo_chamber_values[item][i] = []
+            branked_echo_chamber_values[item][i] = []
+            cranked_echo_chamber_values[item][i] = []
+            wranked_echo_chamber_values[item][i] = []
     
     Bot = bot.load_bot()
     echo_chamber_cascade_root = {}
+    dranked_cascade_root = {}
+    pranked_cascade_root = {}
+    branked_cascade_root = {}
+    cranked_cascade_root = {}
+    wranked_cascade_root = {}
     cascade_veracity = {}
     echo_chamber_users = e_util.get_echo_chamber_users(filename)
+    with open('Data/ranked_weight2_echo_chamber.json', 'r') as f:
+        dranked_echo_users = json.load(f)
+    with open('Data/ranked_weight5_echo_chamber.json', 'r') as f:
+        pranked_echo_users = json.load(f)
+    with open('Data/ranked_weight10_echo_chamber.json', 'r') as f:
+        branked_echo_users = json.load(f)
+    
+#    with open('Data/degree_ranked_users.json', 'r') as f:
+#        dranked_echo_users = json.load(f)
+#    with open('Data/pagerank_ranked_users.json', 'r') as f:
+#        pranked_echo_users = json.load(f)
+#    with open('Data/betweenness_ranked_users.json', 'r') as f:
+#        branked_echo_users = json.load(f)
+  
+    with open('Data/closeness_ranked_users.json', 'r') as f:
+        cranked_echo_users = json.load(f)
+    with open('Data/weighted_degree_ranked_users.json', 'r') as f:
+        wranked_echo_users = json.load(f)
 
     files = os.listdir('RetweetNew')
     #collect echo chamber user participate cascade 
@@ -499,28 +538,64 @@ def time_to_depth_echo_chamber(filename):
                     #if origin in echo_chamber_users[postid].keys():
                     if tweet['user'] in echo_chamber_users[postid].keys():
                         echo_chamber_cascade_root[tweet['origin_tweet']] = 1
-                except keyerror :
+                    try:
+                        if tweet['user'] in dranked_echo_users[postid].keys():
+                          dranked_cascade_root[tweet['origin_tweet']] = 1
+                    except KeyError:
+                        pass 
+                    try:
+                        if tweet['user'] in pranked_echo_users[postid].keys():
+                          pranked_cascade_root[tweet['origin_tweet']] = 1
+                    except KeyError:
+                        pass 
+                    try:
+                        if tweet['user'] in branked_echo_users[postid].keys():
+                          branked_cascade_root[tweet['origin_tweet']] = 1
+                    except KeyError:
+                        pass 
+                    try:
+                        if tweet['user'] in cranked_echo_users[postid].keys():
+                          cranked_cascade_root[tweet['origin_tweet']] = 1
+                    except KeyError:
+                        pass 
+                    try:
+                        if tweet['user'] in wranked_echo_users[postid].keys():
+                          wranked_cascade_root[tweet['origin_tweet']] = 1
+                    except KeyError:
+                        pass 
+
+                except KeyError :
                     pass
 
                 cascade_veracity[tweet['origin_tweet']] = v
-                    
+    
     print("echo chamber cascade extraction done")
+
     echo_chamber_cascades = echo_chamber_cascade_root.keys()
+    dranked_echo_chamber_cascades = dranked_cascade_root.keys()
+    pranked_echo_chamber_cascades = pranked_cascade_root.keys()
+    branked_echo_chamber_cascades = branked_cascade_root.keys()
+    cranked_echo_chamber_cascades = cranked_cascade_root.keys()
+    wranked_echo_chamber_cascades = wranked_cascade_root.keys()
     print('echo chamber cascades')
     #print(echo_chamber_cascades)
+    print('cascade num ', len(echo_chamber_cascades), len(dranked_echo_chamber_cascades))
 
-    e = {}; n = {};
+    e = {};  n = {}; r = {}; #echo, non echo, ranked echo 
     for item in ['True', 'False', 'Mixed']:
         e[item] = {}
         n[item] = {}
+        r[item] = {}
         
         for d_type in ['user_depth', 'time_depth']:
             e[item][d_type] = {}
             n[item][d_type] = {}
+            r[item][d_type] = {}
 
             for i in range(1, 20):
                 e[item][d_type][i] = []
                 n[item][d_type][i] = []
+                r[item][d_type][i] = []
 
     for key in time_depth.keys():
         v = cascade_veracity[key]
@@ -548,6 +623,48 @@ def time_to_depth_echo_chamber(filename):
                 except KeyError:
                     pass
 
+        if key in dranked_echo_chamber_cascades:
+            for i in range(1, max(time_depth[key].keys())):
+                try :
+                    dranked_echo_chamber_values['time_depth'][i].append(time_depth[key][i])
+                    r[v]['time_depth'][i].append(time_depth[key][i])
+
+                except KeyError:
+                    pass
+        if key in pranked_echo_chamber_cascades:
+            for i in range(1, max(time_depth[key].keys())):
+                try :
+                    pranked_echo_chamber_values['time_depth'][i].append(time_depth[key][i])
+                    r[v]['time_depth'][i].append(time_depth[key][i])
+
+                except KeyError:
+                    pass
+        if key in branked_echo_chamber_cascades:
+            for i in range(1, max(time_depth[key].keys())):
+                try :
+                    branked_echo_chamber_values['time_depth'][i].append(time_depth[key][i])
+                    r[v]['time_depth'][i].append(time_depth[key][i])
+
+                except KeyError:
+                    pass
+        if key in cranked_echo_chamber_cascades:
+            for i in range(1, max(time_depth[key].keys())):
+                try :
+                    cranked_echo_chamber_values['time_depth'][i].append(time_depth[key][i])
+                    r[v]['time_depth'][i].append(time_depth[key][i])
+
+                except KeyError:
+                    pass
+        if key in wranked_echo_chamber_cascades:
+            for i in range(1, max(time_depth[key].keys())):
+                try :
+                    wranked_echo_chamber_values['time_depth'][i].append(time_depth[key][i])
+                    r[v]['time_depth'][i].append(time_depth[key][i])
+
+                except KeyError:
+                    pass
+
+
     box = BoxPlot(1)
     box.set_multiple_data([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth']])
     box.set_ylog()
@@ -558,9 +675,23 @@ def time_to_depth_echo_chamber(filename):
     #draw time to depth, user to depth of cascade for echo chamber users participated or non echo chamer users participated 
     draw_time_to_depth_echo_chamber([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth']], ['echo chamber', 'no echo chamber'], 'median minutes', 'time_depth_echo_chamber_line')
     draw_time_to_depth_echo_chamber([echo_chamber_values['user_depth'], non_echo_chamber_values['user_depth']], ['echo chamber', 'no echo chamber'], 'median unique users', 'user_depth_echo_chamber_line')
+    draw_time_to_depth_echo_chamber([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth'], dranked_echo_chamber_values['time_depth']], ['echo chamber', 'no echo chamber', 'ranked echo chamber'], 'median minutes', 'time_depth_echo_chamber_line_ranked')
+    
+    draw_time_to_depth_echo_chamber([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth'], dranked_echo_chamber_values['time_depth'], pranked_echo_chamber_values['time_depth'], 
+        branked_echo_chamber_values['time_depth']],['echo chamber', 'no echo chamber', 'ranked weight 2', 'ranked weight 5', 'ranked weight 10'], 'median minutes', 'time_depth_echo_chamber_line_ranked222')
+
+    #draw_time_to_depth_echo_chamber([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth'], dranked_echo_chamber_values['time_depth'], pranked_echo_chamber_values['time_depth'], 
+    #    branked_echo_chamber_values['time_depth'], cranked_echo_chamber_values['time_depth'], wranked_echo_chamber_values['time_depth'] ], 
+    #    ['echo chamber', 'no echo chamber', 'degree', 'pagerank', 'betweenness', 'closeness', 'weighted degree'], 'median minutes', 'time_depth_echo_chamber_line_ranked')
+
     draw_time_to_depth_echo_chamber([e['True']['time_depth'], n['True']['time_depth']], ['echo chamber', 'no echo chamber'], 'median minutes', 'time_depth_echo_chamber_line_t')
     draw_time_to_depth_echo_chamber([e['False']['time_depth'], n['False']['time_depth']], ['echo chamber', 'no echo chamber'],'median minutes', 'time_depth_echo_chamber_line_f')
     draw_time_to_depth_echo_chamber([e['Mixed']['time_depth'], n['Mixed']['time_depth']], ['echo chamber', 'no echo chamber'],'median minutes', 'time_depth_echo_chamber_line_m')
+
+    draw_time_to_depth_echo_chamber([e['True']['time_depth'], n['True']['time_depth'], r['True']['time_depth']], ['echo chamber', 'no echo chamber', 'ranked echo chamber'], 'median minutes', 'time_depth_echo_chamber_line_t_ranked')
+    draw_time_to_depth_echo_chamber([e['False']['time_depth'], n['False']['time_depth'], r['False']['time_depth']], ['echo chamber', 'no echo chamber', 'ranked echo chamber'],'median minutes', 'time_depth_echo_chamber_line_f_ranked')
+    draw_time_to_depth_echo_chamber([e['Mixed']['time_depth'], n['Mixed']['time_depth'], r['Mixed']['time_depth']], ['echo chamber', 'no echo chamber', 'ranked echo chamber'],'median minutes', 'time_depth_echo_chamber_line_m_ranked')
+
     draw_time_to_depth_echo_chamber([e['True']['user_depth'], n['True']['user_depth']], ['echo chamber', 'no echo chamber'],'median unique users', 'user_depth_echo_chamber_line_t')
     draw_time_to_depth_echo_chamber([e['False']['user_depth'], n['False']['user_depth']], ['echo chamber', 'no echo chamber'],'median unique users', 'user_depth_echo_chamber_line_f')
     draw_time_to_depth_echo_chamber([e['Mixed']['user_depth'], n['Mixed']['user_depth']], ['echo chamber', 'no echo chamber'],'median unique users', 'user_depth_echo_chamber_line_m')
@@ -571,6 +702,7 @@ def propagation_to_depth_politic(filename):
     echo_chamber_values = {}
     non_echo_chamber_values = {} 
     echo_politics = {}; echo_non_politics = {}; non_echo_politics = {}; non_echo_non_politics = {};
+    ranked_echo_politics = {}; ranked_echo_non_politics = {}
     politics = {}
     non_politics = {}
     for item in ['time_depth', 'user_depth']:
@@ -582,6 +714,9 @@ def propagation_to_depth_politic(filename):
         echo_non_politics[item] = {}
         non_echo_politics[item] = {}
         non_echo_non_politics[item] = {}
+        ranked_echo_politics[item] = {}
+        ranked_echo_non_politics[item] = {}
+
 
         for i in range(1,20):
             echo_chamber_values[item][i] = []
@@ -592,21 +727,29 @@ def propagation_to_depth_politic(filename):
             echo_non_politics[item][i] = []
             non_echo_politics[item][i] = []
             non_echo_non_politics[item][i] = []
+            ranked_echo_politics[item][i] = []
+            ranked_echo_non_politics[item][i] = []
+
    
     echo_chamber_cascade_root = {} #cascade which echo chamber users participated in 
+    ranked_echo_chamber_cascade_root = {} #cascade which echo chamber users participated in 
     cascade_veracity = {}
     echo_chamber_users = {}
     politic_cascade = {} #contain cascade root of political rumors
     non_politic_cascade = {}
    
     echo_chamber_users = e_util.get_echo_chamber_users(filename)
+    with open('Data/degree_ranked_users.json', 'r') as f:
+        ranked_echo_chamber_users = json.load(f)
+    print(ranked_echo_chamber_users.keys())
+
     files = os.listdir('RetweetNew')
     #for postid in echo_chamber_users.keys():
     for postid in files:
         
         #if not get_veracity(postid, 'Mixture,Mostly True,Mostly False'):
-        if not get_veracity(postid, 'False'):
-            continue
+        #if not get_veracity(postid, 'False'):
+        #    continue
 
         v = veracity_type(postid).title()
         #get origin tweet of echo chamber user 
@@ -624,7 +767,13 @@ def propagation_to_depth_politic(filename):
                 try:
                     if tweet['user'] in echo_chamber_users[postid].keys():
                         echo_chamber_cascade_root[tweet['origin_tweet']] = 1
-                except keyerror :
+                except KeyError :
+                    pass
+
+                try:
+                    if tweet['user'] in ranked_echo_chamber_users[postid].keys():
+                        ranked_echo_chamber_cascade_root[tweet['origin_tweet']] = 1
+                except KeyError :
                     pass
 
                 cascade_veracity[tweet['origin_tweet']] = v
@@ -640,6 +789,9 @@ def propagation_to_depth_politic(filename):
 
     print("time series data load done ")
     echo_chamber_cascades = echo_chamber_cascade_root.keys()
+    ranked_echo_chamber_cascades = ranked_echo_chamber_cascade_root.keys()
+
+    print(len(ranked_echo_chamber_cascades))
     political_cascades = politic_cascade.keys()
     non_political_cascades = non_politic_cascade.keys()
     #print('echo chamber cascades')
@@ -654,6 +806,10 @@ def propagation_to_depth_politic(filename):
             else : 
                 echo = 0 
 
+            if key in ranked_echo_chamber_cascades:
+                ranked = 1
+            else:
+                ranked = 0
             for i in range(1, max(time_depth[key].keys())):
                 try:
                     politics['time_depth'][i].append(time_depth[key][i])
@@ -667,13 +823,25 @@ def propagation_to_depth_politic(filename):
                         non_echo_politics['time_depth'][i].append(time_depth[key][i])
                         non_echo_politics['user_depth'][i].append(user_depth[key][i])
 
+                    if ranked == 1:
+                        #echo political
+                        ranked_echo_politics['time_depth'][i].append(time_depth[key][i])
+                        ranked_echo_politics['user_depth'][i].append(user_depth[key][i])
+
+
                 except KeyError :
                     pass
+
         if key in non_political_cascades:
             if key in echo_chamber_cascades:
                 echo = 1
             else : 
                 echo = 0 
+            if key in ranked_echo_chamber_cascades:
+                ranked = 1
+                print(222)
+            else:
+                ranked = 0
 
             for i in range(1, max(time_depth[key].keys())):
                 try:
@@ -689,6 +857,12 @@ def propagation_to_depth_politic(filename):
                         non_echo_non_politics['time_depth'][i].append(time_depth[key][i])
                         non_echo_non_politics['user_depth'][i].append(user_depth[key][i])
 
+                    if ranked == 1:
+                        #echo non political
+                        print(222)
+                        ranked_echo_non_politics['time_depth'][i].append(time_depth[key][i])
+                        ranked_echo_non_politics['user_depth'][i].append(user_depth[key][i])
+
                 except KeyError :
                     pass
        
@@ -702,6 +876,10 @@ def propagation_to_depth_politic(filename):
     draw_time_to_depth_echo_chamber([echo_politics['user_depth'], non_echo_politics['user_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Median Unique Users', 'user_depth_politics_echo_line')
     draw_time_to_depth_echo_chamber([echo_non_politics['time_depth'], non_echo_non_politics['time_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Median Minutes', 'time_depth_non_politics_echo_line')
     draw_time_to_depth_echo_chamber([echo_non_politics['user_depth'], non_echo_non_politics['user_depth']], ['Echo Chamber', 'Non Echo Chamber'], 'Median Unique Users', 'user_depth_non_politics_echo_line')
+
+    draw_time_to_depth_echo_chamber([echo_politics['time_depth'], non_echo_politics['time_depth'], ranked_echo_politics['time_depth']], ['Echo Chamber', 'Non Echo Chamber', 'Ranked Echo Chamber'], 'Median Minutes', 'time_depth_politics_echo_line_ranked')
+    draw_time_to_depth_echo_chamber([echo_non_politics['time_depth'], non_echo_non_politics['time_depth'], ranked_echo_non_politics['time_depth']], ['Echo Chamber', 'Non Echo Chamber', 'Ranked Echo Chamber'], 'Median Minutes', 'time_depth_non_politics_echo_line_ranked')
+
 
 def draw_time_to_depth_echo_chamber(data, legend, data_type, filename):
     x_ticks = np.arange(1,20)
@@ -752,12 +930,14 @@ def user_to_depth(user_depth, user_depth2, user_depth3):
 
 
 if __name__ == "__main__":
-    foldername = 'Image/20181017/Propagation'
+    foldername = 'Image/20181022/Propagation'
+    if not os.path.exists(foldername):
+        os.makedirs(foldername)
     #depth_cdf()
    # max_depth_per_rumor()
-    time_to_depth()    
+    #time_to_depth()    
     #propagation_to_depth_politic('Data/echo_chamber2.json')
-    #time_to_depth_echo_chamber('Data/echo_chamber2.json')
+    time_to_depth_echo_chamber('Data/echo_chamber2.json')
 
     #depth_politics_cdf()
 

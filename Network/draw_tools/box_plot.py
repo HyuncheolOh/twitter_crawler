@@ -77,4 +77,5 @@ class BoxPlot:
 
     def save_image(self, path):
         plt.savefig(path, bbox_inches='tight')
+        plt.savefig(path + '.eps', bbox_inches='tight')
 

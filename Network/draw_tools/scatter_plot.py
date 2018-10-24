@@ -9,7 +9,7 @@ class ScatterPlot:
     def __init__(self, subplot_num=1):
         self.fig_num = 1
         self.is_log = False
-        self.fig = plt.figure(figsize=(10,15))
+        self.fig = plt.figure(figsize=(15,10))
 	self.ax = self.fig.add_subplot(1,1,1);
         self.subplot_x = subplot_num
         self.subplot_y = subplot_num
@@ -22,7 +22,7 @@ class ScatterPlot:
         #c = ['g' for i in range(5)]
         #for i in range(len(x)):
         #self.ax.scatter(x[i], y[i], c = colors[i], s = 100, marker = markers[i])
-        self.ax.scatter(x, y, c = self.colors[self.count])
+        self.ax.scatter(x, y, c = self.colors[self.count], alpha=0.4)
         self.count += 1 
         #self.ax.scatter(x, y)
         #self.ax.scatter(x, y, c = colors, s = 80, marker = markers)
@@ -55,8 +55,8 @@ class ScatterPlot:
     def set_yticks(self, yticks):
         plt.yticks(np.arange(len(yticks)), yticks)
 
-    def set_ylim(self, value):
-        self.ax.set_ylim(0, value)
+    def set_ylim(self, min_v, max_v):
+        self.ax.set_ylim(min_v, max_v)
 
     def set_xlim(self, value):
         self.ax.set_xlim(0,value)
