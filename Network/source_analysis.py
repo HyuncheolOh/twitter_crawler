@@ -190,6 +190,7 @@ def echo_chamber_diversity(filename):
 #show user's consuming content (source) is aligned to their ideological position
 def political_alignment():
     source_politic_score = {}
+    echo_chamber_users = e_util.get_echo_chamber_users(filename)
 
     #load source information file
     with open('Data/top500.tab', 'r') as f:
@@ -206,11 +207,11 @@ def political_alignment():
     files = os.listdir(dir_name)
     timeline_dir = '../Timeline/'
 
-
     for postid in files:
         user_score = []; echo_user_score = []; non_echo_user_score = []
         source_score = []; echo_source_score = []; non_echo_source_score = []       
 
+        """
         if util.is_politics(postid):
             path = '%s/Politic/%s'%(folder, postid)
             path2 = '%s/Politic/echo_%s'%(folder, postid)
@@ -222,6 +223,10 @@ def political_alignment():
             path2 = '%s/Other/echo_%s'%(folder, postid)
 
         if os.path.exists(path+'.png'):
+            continue
+        """
+        path = '%s/selective_exposure_%s'%(folder, postid)
+        if postid != '142256':
             continue
         print(postid)
         with open(dir_name + postid, 'r') as f:
@@ -275,7 +280,37 @@ def political_alignment():
                 break
 
         print('count zero users : %s'%count_zero_users)
+        print('save selective exposure file')
+        filefolder = 'Data/SelectiveExposure/'
+        if not os.path.exists(filefolder):
+           os.makedirs(filefolder)
+
+        datapath = filefolder + postid
+        with open(datapath, 'w') as f :
+            json.dump({'necho_user' : non_echo_user_score, 'necho_source' : non_echo_source_score, 'echo_user' : echo_user_score, 'echo_source' : echo_source_score}, f)
+
         snsplot.draw_echo_plot(non_echo_user_score, non_echo_source_score, echo_user_score, echo_source_score, path)
+
+#draw graph from saved datafile 
+def draw_political_alignment():
+    
+    filefolder = 'Data/SelectiveExposure/'
+    postid = '142256'
+    path = folder  + '/' + postid
+    datapath = filefolder + postid
+    
+    print(datapath)
+    with open(datapath, 'r') as f : 
+        dataset = json.load(f)
+    
+
+    non_echo_user_score = dataset['necho_user']
+    non_echo_source_score = dataset['necho_source']
+    echo_user_score = dataset['echo_user']
+    echo_source_score = dataset['echo_source']
+
+    snsplot.draw_echo_plot(non_echo_user_score, non_echo_source_score, echo_user_score, echo_source_score, path)
+
 
 #compare ranked echo chamber user's political diversity 
 def source_diversity_rank_comparison(filename):
@@ -342,7 +377,7 @@ def source_diversity_rank_comparison(filename):
         snsplot.draw_plot(user_score, source_score, path)
 
 if __name__ == "__main__":
-    folder = 'Image/20181019'
+    folder = 'Image/20181029'
     start = time()
     dir_name = 'RetweetNew/'
     #echo_chamber_diversity('Data/echo_chamber2.json')
@@ -350,6 +385,7 @@ if __name__ == "__main__":
     filename = 'Data/echo_chamber2.json'
     #echo_chamber_users = e_util.get_echo_chamber_users(filename)
     #political_alignment()
-    source_diversity_rank_comparison('Data/ranked_weight2_echo_chamber.json')
+    draw_political_alignment()
+    #source_diversity_rank_comparison('Data/ranked_weight2_echo_chamber.json')
     end = time()
     print('%s taken'%(end-start))

@@ -34,15 +34,15 @@ class BoxPlot:
             #self.ax.boxplot(item, positions = [i*5+1, i*5+2], showfliers = False, widths=0.6)
         bpl = self.ax.boxplot(data[0].values(), positions=np.array(xrange(len(data[0])))*2.0-0.4, sym='', widths=0.6, showfliers = False)
         bpr = self.ax.boxplot(data[1].values(), positions=np.array(xrange(len(data[1])))*2.0+0.4, sym='', widths=0.6, showfliers = False)
-        self.set_box_color(bpl, '#D7191C') # colors are from http://colorbrewer2.org/
-        self.set_box_color(bpr, '#2C7BB6')
+        self.set_box_color(bpl, '#b2182b') # colors are from http://colorbrewer2.org/
+        self.set_box_color(bpr, '#084081')
 
         # draw temporary red and blue lines and use them to create a legend
-        plt.plot([], c='#D7191C', label='Echo Chamber')
-        plt.plot([], c='#2C7BB6', label='Non Echo Chamber')
-        plt.legend()
-        ticks = np.arange(1,17)
-        plt.xticks(xrange(0, len(ticks) * 2, 2), ticks)
+        plt.plot([], c='#b2182b', label='Echo Chamber')
+        plt.plot([], c='#084081', label='Non Echo Chamber')
+        plt.legend(fontsize=20)
+        ticks = np.arange(1,11)
+        plt.xticks(xrange(0, len(ticks) * 2, 2), ticks, fontsize=20)
         plt.xlim(-2, len(ticks)*2)
         #plt.ylim(0, 8)
 
@@ -52,7 +52,7 @@ class BoxPlot:
 
     def set_title(self, title):
         #self.ax.title.set_text(title, fontsize=20)
-        self.ax.set_title(title, fontsize=20, y=1.02)
+        self.ax.set_title(title, fontsize=24, y=1.02)
 
     def set_xticks(self, x_ticks):
         #plt.xticks(np.arange(len(x_ticks))+1, x_ticks) 
@@ -63,8 +63,8 @@ class BoxPlot:
         self.ax.set_yticklabels(y_ticks, fontsize=20)
 
     def set_label(self, x, y):
-        self.ax.set_xlabel(x, fontsize=20);
-        self.ax.set_ylabel(y, fontsize=20);
+        self.ax.set_xlabel(x, fontsize=24);
+        self.ax.set_ylabel(y, fontsize=24);
 
     def set_ylim(self, value):
         self.ax.set_ylim(0, value)

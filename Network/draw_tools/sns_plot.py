@@ -33,9 +33,11 @@ def draw_plot(x, y, filename):
 
     #f = plot.figure
     plt.savefig(filename, bbox_inches='tight')  
-    plt.savefig(path + '.eps', bbox_inches='tight')
+    plt.savefig(filename + '.eps', bbox_inches='tight', format='eps', dpi=600)
 
 def draw_echo_plot(x, y, x2, y2, filename):
+    plt.style.use("ggplot")
+    
     x_all = list(x)
     x_all.extend(x2)
     y_all = list(y)
@@ -47,24 +49,31 @@ def draw_echo_plot(x, y, x2, y2, filename):
     df2 = pd.DataFrame({'User Polarity':x2, 'Content Polarity':y2})
 
     height = 10
-    ratio = 2
+    ratio = 10 
     f = plt.figure(figsize=(height, height))
     gs = plt.GridSpec(ratio + 1, ratio + 1)
 
-    ax_joint = f.add_subplot(gs[1:, :-1])
-    ax_marg_x = f.add_subplot(gs[0, :-1], sharex=ax_joint)
-    ax_marg_y = f.add_subplot(gs[1:, -1], sharey=ax_joint)
+    ax_joint = f.add_subplot(gs[3:, :-3])
+    ax_marg_x = f.add_subplot(gs[:2, :-3], sharex=ax_joint)
+    ax_marg_y = f.add_subplot(gs[3:, -2:], sharey=ax_joint)
 
     #set label
-    #ax_marg_x.set_xlabel('User Polarity', fontsize = 16)
-    #ax_marg_y.set_ylabel('Content Polarity', fontsize = 16)
-    ax_joint.set_xlabel('User Polarity', fontsize = 20)
-    ax_joint.set_ylabel('Content Polarity', fontsize = 20)
+    ax_marg_x.set_xlabel('User Polarity', fontsize = 16, color='black')
+    ax_marg_y.set_ylabel('Content Polarity', fontsize = 16, color='black')
+    ax_joint.set_xlabel('User Polarity', fontsize = 20, color='black')
+    ax_joint.set_ylabel('Content Polarity', fontsize = 20, color='black')
+    ax_joint.set_xticklabels(['', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0'], fontdict={'fontsize':14})
+    ax_joint.set_yticklabels(['', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0'], fontdict={'fontsize':14})
+    #ax_marg_x.set_xticklabels(['', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0'], fontdict={'fontsize':12})
+    #ax_marg_y.set_xticklabels(['', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0'], fontdict={'fontsize':12})
+
+    ax_joint.grid(True)
 
     g = sns.regplot(x="User Polarity", y="Content Polarity", data = df1, ax=ax_joint, color='g', label='Non Echo Chamber')
     g = sns.regplot(x="User Polarity", y="Content Polarity", data = df2, ax=ax_joint, color='b', label='Echo Chamber')
-    g.set(ylim=(0,1))
-    g.set(xlim=(0,1))
+    g.set(ylim=(-0.1,1.1))
+    g.set(xlim=(-0.1,1.1))
+    ax_joint.legend(loc=2)
   
     #f.legend((g1, g2), ('Non Echo Chamber', 'Echo Chamber'))
     sns.kdeplot(df1['User Polarity'], ax=ax_marg_x, shade=True, color='g', legend=False)
@@ -75,4 +84,5 @@ def draw_echo_plot(x, y, x2, y2, filename):
 
     #f = plot.figure
     plt.savefig(filename, bbox_inches='tight')
-    plt.savefig(path + '.eps', bbox_inches='tight')
+    plt.savefig(filename + '.eps', bbox_inches='tight', format='eps')
+    plt.savefig(filename + '.pdf', bbox_inches='tight',  dpi=600)

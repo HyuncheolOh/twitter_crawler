@@ -9,7 +9,7 @@ class ScatterPlot:
     def __init__(self, subplot_num=1):
         self.fig_num = 1
         self.is_log = False
-        self.fig = plt.figure(figsize=(15,10))
+        self.fig = plt.figure(figsize=(5,5))
 	self.ax = self.fig.add_subplot(1,1,1);
         self.subplot_x = subplot_num
         self.subplot_y = subplot_num
@@ -58,8 +58,8 @@ class ScatterPlot:
     def set_ylim(self, min_v, max_v):
         self.ax.set_ylim(min_v, max_v)
 
-    def set_xlim(self, value):
-        self.ax.set_xlim(0,value)
+    def set_xlim(self, min_v, max_v):
+        self.ax.set_xlim(min_v, max_v)
 
     def set_title(self, title):
         self.ax.title.set_text(title)
@@ -75,6 +75,9 @@ class ScatterPlot:
         #plt.axis('tight')
         #self.ax.legend()
         plt.savefig(path, bbox_inches='tight')
+        plt.savefig(path + '.eps', bbox_inches='tight', format='eps', dpi=600)
+        path.replace('.png', '')
+        plt.savefig(path.replace('.png', '') + '.pdf', bbox_inches='tight', dpi=600)
         plt.clf()
         plt.close(self.fig)
 

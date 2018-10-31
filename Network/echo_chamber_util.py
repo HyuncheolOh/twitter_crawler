@@ -4,6 +4,13 @@ import bot_detect as bot
 #get all echo chamber users per postid
 def get_echo_chamber_users(file_name):
     #file_name = 'Data/echo_chamber2.json'
+    print(file_name)
+    if 'echo_chamber2.json' in file_name:
+        if os.path.exists('Data/echo_chamber_users2.json'):
+            with open('Data/echo_chamber_users2.json', 'r') as f:
+                echo_chamber_users = json.load(f)
+            return echo_chamber_users
+
     with open(file_name) as f:
         echo_chambers = json.load(f)
 
@@ -26,6 +33,9 @@ def get_echo_chamber_users(file_name):
         count += 1
 
     print('echo chamber size %s'%count)
+    with open('Data/echo_chamber_users2.json', 'w') as f:
+        json.dump(echo_chamber_users, f)
+
     return echo_chamber_users
 
 # max breadth, depth, cascade from a cascade

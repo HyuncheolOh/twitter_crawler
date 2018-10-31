@@ -7,72 +7,6 @@ from numpy import ma
 from matplotlib import scale as mscale
 from matplotlib import transforms as mtransforms
 from matplotlib.ticker import FixedFormatter, FixedLocator
-
-
-
-num = 5
-def set_label_num(value):
-    global num
-    num = value
-
-class CloseToOne(mscale.ScaleBase):
-    name = 'close_to_one'
-
-    def __init__(self, axis, **kwargs):
-        mscale.ScaleBase.__init__(self)
-        self.nines = kwargs.get('nines', num)
-
-    def get_transform(self):
-        return self.Transform(self.nines)
-        #return self.InvertedTransform(self.nines)
-
-    def set_default_locators_and_formatters(self, axis):
-        axis.set_major_locator(FixedLocator(
-                np.array([1-10**(-k) for k in range(1+self.nines)])))
-        axis.set_major_formatter(FixedFormatter(
-                [str(1-10**(-k)) for k in range(1+self.nines)]))
-
-
-    def limit_range_for_scale(self, vmin, vmax, minpos):
-        return vmin, min(1 - 10**(-self.nines), vmax)
-
-    class Transform(mtransforms.Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
-
-        def __init__(self, nines):
-            mtransforms.Transform.__init__(self)
-            self.nines = nines
-
-        def transform_non_affine(self, a):
-            masked = ma.masked_where(a > 1-10**(-1-self.nines), a)
-            if masked.mask.any():
-                return -ma.log10(1-a)
-            else:
-                return -np.log10(1-a)
-
-        def inverted(self):
-            return CloseToOne.InvertedTransform(self.nines)
-
-    class InvertedTransform(mtransforms.Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
-
-        def __init__(self, nines):
-            mtransforms.Transform.__init__(self)
-            self.nines = nines
-
-        def transform_non_affine(self, a):
-            return 1. - 10**(-a)
-
-        def inverted(self):
-            return CloseToOne.Transform(self.nines)
-
-mscale.register_scale(CloseToOne)
-
-
 class CDFPlot:
     is_log = False;
 
@@ -124,12 +58,15 @@ class CDFPlot:
         self.ax.set_title(title, fontsize=20, y=1.02)
 
     def set_legends(self, legends, title=""):
-        plt.legend(legends, loc=4, title=title, fontsize=9)
+        plt.legend(legends, loc=2,  title=title, fontsize=12)
 
     def set_label(self, x, y):
         self.ax.set_xlabel(x, fontsize=16);
         self.ax.set_ylabel(y, fontsize=16);
 
+    def set_xticks(self, xticks):
+        self.ax.set_xticklabels(xticks, fontsize=12)
+        #plt.xticks(np.arange(len(xticks)), xticks, fontsize=12)
 
     def set_ylog(self):
         #self.ax.set_yscale('symlog')
@@ -143,4 +80,4 @@ class CDFPlot:
 
     def save_image(self, path):
 	self.fig.savefig(path, bbox_inches='tight')
-	self.fig.savefig(path+'.eps', bbox_inches='tight')
+        self.fig.savefig(path + '.eps', bbox_inches='tight', format='eps', dpi=600)

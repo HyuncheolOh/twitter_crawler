@@ -204,6 +204,8 @@ def cascade_centrality_analysis(g, vprop, eweight):
     d_sort = sorted(degree.items(), key=itemgetter(1), reverse=True)
     wd_sort = sorted(weighted_degree.items(), key=itemgetter(1), reverse=True)
 
+    edge_node_num = np.count_nonzero(g.get_out_degrees(g.get_vertices()))
+    print(edge_node_num, len(p_sort))
     #print(d_sort)
     #print(wd_sort)
     #print(c_sort)
@@ -211,17 +213,23 @@ def cascade_centrality_analysis(g, vprop, eweight):
     
     num = node_num
     print(node_num)
-    if num * 0.2 < 10:
-        num = 10 
+    if num * 0.1 < 20:
+        num = 20 
     else:
-        num = int(num * 0.2)
-    #num = 50
+        num = int(num * 0.1)
+    #num = 20
     print('top %s rank echo chambers'%num)
-    keys1 = [vprop[item[0]] for item in p_sort[:num]]
-    keys2 = [vprop[item[0]] for item in b_sort[:num]]
-    keys3 = [vprop[item[0]] for item in c_sort[:num]]
-    keys4 = [vprop[item[0]] for item in d_sort[:num]]
-    keys5 = [vprop[item[0]] for item in wd_sort[:num]]
+    keys1 = [vprop[item[0]] for item in p_sort[edge_node_num-num:edge_node_num]]
+    keys2 = [vprop[item[0]] for item in b_sort[edge_node_num-num:edge_node_num]]
+    keys3 = [vprop[item[0]] for item in c_sort[edge_node_num-num:edge_node_num]]
+    keys4 = [vprop[item[0]] for item in d_sort[edge_node_num-num:edge_node_num]]
+    keys5 = [vprop[item[0]] for item in wd_sort[edge_node_num-num:edge_node_num]]
+    #keys1 = [vprop[item[0]] for item in p_sort[:num]]
+    #keys2 = [vprop[item[0]] for item in b_sort[:num]]
+    #keys3 = [vprop[item[0]] for item in c_sort[:num]]
+    #keys4 = [vprop[item[0]] for item in d_sort[:num]]
+    #keys5 = [vprop[item[0]] for item in wd_sort[:num]]
+ 
     keys = [vprop[item[0]] for item in p_sort] #for all cascade 
 
 
@@ -252,21 +260,25 @@ def cascade_centrality_analysis(g, vprop, eweight):
     echo_chamber_users = get_unique_echo_chamber_users(echo_chamber, keys) 
 
     #save echo chmabers ranked by degree
-    with open('Data/degree_ranked_users.json', 'w') as f:
+    with open('Data/degree_low_ranked_users_%s.json'%weight_filter, 'w') as f:
         json.dump(echo_chamber_users4, f)
-    with open('Data/pagerank_ranked_users.json', 'w') as f:
+    with open('Data/pagerank_low_ranked_users_%s.json'%weight_filter, 'w') as f:
         json.dump(echo_chamber_users1, f)
-    with open('Data/betweenness_ranked_users.json', 'w') as f:
+    with open('Data/betweenness_low_ranked_users_%s.json'%weight_filter, 'w') as f:
         json.dump(echo_chamber_users2, f)
-    with open('Data/closeness_ranked_users.json', 'w') as f:
+    with open('Data/closeness_low_ranked_users_%s.json'%weight_filter, 'w') as f:
         json.dump(echo_chamber_users3, f)
-    with open('Data/weighted_degree_ranked_users.json', 'w') as f:
+    with open('Data/weighted_degree_low_ranked_users_%s.json'%weight_filter, 'w') as f:
         json.dump(echo_chamber_users5, f)
 
-    with open('Data/ranked_weight%s_echo_chamber.json'%weight_filter, 'w') as f:
+    #with open('Data/ranked_weight%s_echo_chamber.json'%weight_filter, 'w') as f:
+    #    json.dump(echo_chamber_users1, f)
+
+    with open('Data/lowranked_weight%s_echo_chamber.json'%weight_filter, 'w') as f:
         json.dump(echo_chamber_users1, f)
 
-    with open('Data/ranked_echo_chambers%s.json'%weight_filter, 'w') as f:
+
+    with open('Data/ranked_low_echo_chambers%s.json'%weight_filter, 'w') as f:
         json.dump({'p' : keys1, 'b' : keys2, 'c' : keys3, 'd' : keys4, 'w' : keys5}, f)
     print("degree ranked echo chamber users are saved")        
     return 
@@ -553,16 +565,18 @@ def analyze_echo_chamber_network():
     #print('degree max : %s, min : %s'%(max(in_hist), min(in_hist)))
 
     
-    cascade_centrality_analysis(g, vprop, eweight)
+    #cascade_centrality_analysis(g, vprop, eweight)
     #rumor_centrality_analysis(g, vprop)
-    return 
+    #return 
     v_count = 0
     e_count = 0 
     for v in g.vertices():
         v_count += 1
 
     degree = g.get_out_degrees(g.get_vertices())
-   
+    for i in degree:
+        print(degree[i])
+    print(degree) 
     #calculate vertex all edge weight sum
     #for v in g.vertices():
     #CDF and CCDF of degree of vertex
@@ -578,6 +592,12 @@ def analyze_echo_chamber_network():
     cdf.set_data(degree)
     cdf.save_image("%s/degree_ccdf"%(folder_name))
 
+
+    print('Vertex Count : %s'%v_count)
+    print('Vertices which have edges : %s'%(np.count_nonzero(g.get_out_degrees(g.get_vertices()))))
+    print('Edge Count : %s'%(sum(degree)))
+
+    return
     #degree, weighted_degree rank 
     weighted_degree = []
     for v in g.vertices():
@@ -596,10 +616,6 @@ def analyze_echo_chamber_network():
     cdf.set_log(True)
     cdf.set_data(weighted_degree)
     cdf.save_image("%s/weighted_degree_ccdf"%(folder_name))
-
-    print('Vertex Count : %s'%v_count)
-    print('Vertices which have edges : %s'%(np.count_nonzero(g.get_out_degrees(g.get_vertices()))))
-    print('Edge Count : %s'%(sum(degree)))
 
     
     #weight distribution
@@ -736,8 +752,8 @@ def rank_depth_distribution():
                         if tweet['user'] in users:
                             depth.append(d)         
                             child.append(c)
-                print(depth.count(1)/len(depth))
-                rank_root_ratio[num].append(depth.count(1)/len(depth))
+     #           print(depth.count(1)/len(depth))
+                rank_root_ratio[num].append((depth.count(1) + depth.count(2) + depth.count(3))/len(depth))
 
     all_root_ratio = []
     for postid in all_postid.keys():
@@ -751,12 +767,13 @@ def rank_depth_distribution():
                 c = tweet['child']
                 depth.append(d)         
                 child.append(c)
-            all_root_ratio.append(depth.count(1)/len(depth))
+            all_root_ratio.append((depth.count(1) + depth.count(2) + depth.count(3)) / len(depth))
+            #all_root_ratio.append(depth.count(1)/len(depth))
 
     cdf = CDFPlot()
     cdf.set_label('Depth', 'CDF')
     for num in rank_root_ratio.keys():
-        print(num)
+    #    print(num)
         cdf.set_data(rank_root_ratio[num], 'Depth')
 
     cdf.set_data(all_root_ratio, 'Depth')
@@ -807,7 +824,7 @@ def polarity_weight_correlation():
     dkeys = d_mean.keys() 
 
     print('polarity calculation done for echo chambers')
-    f = open('Data/ranked_echo_chambers%s.json'%weight_filter, 'r') 
+    f = open('Data/ranked_low_echo_chambers%s.json'%weight_filter, 'r') 
     ranked_echo_chamber = json.load(f)
     f.close()
     print('ranked echo chamber : %s'%len(ranked_echo_chamber))
@@ -930,7 +947,7 @@ def polarity_weight_correlation():
     for key in weight_list:
         weight_pearson_mean[key] = []
         weight_pearson_median[key] = []
-        key = int(key / 10) * 10
+        #key = int(key / 10) * 10
         weight_polar[key] = []
 
     for num in numbers:
@@ -943,8 +960,9 @@ def polarity_weight_correlation():
         mean_mean[polar_median_list[i]].append(weight_list[i])
         weight_pearson_median[weight_list[i]].append((median_v1[i], median_v2[i]))
         weight_pearson_mean[weight_list[i]].append((mean_v1[i], mean_v2[i]))
-        w_key = int(weight_list[i] / 10) * 10
-        weight_polar[w_key].append(polar_median_list[i])
+        weight_polar[weight_list[i]].append(polar_median_list[i])
+        #w_key = int(weight_list[i] / 10) * 10
+        #weight_polar[w_key].append(polar_median_list[i])
 
     pearson_list = []
     for key in weight_pearson_mean.keys():
@@ -966,13 +984,6 @@ def polarity_weight_correlation():
     #print(median_median)
     #print(mean_mean)
 
-    scatter = ScatterPlot()
-    #scatter.set_log(True)
-    scatter.set_ylog()
-    scatter.set_label('Median Polarity', 'Median Weight')
-    scatter.set_data(median_median.keys(), [np.median(item) for item in median_median.values()])
-    scatter.save_image('%s/echo_chamber_polarity_weight_median_median_%s.png'%(folder_name, weight_filter))
-    
     scatter = ScatterPlot()
     #scatter.set_log(True)
     #scatter.set_ylog()
@@ -1037,10 +1048,384 @@ def polarity_weight_correlation():
     scatter.set_legends([key for key in polar_weight_aggre.keys()], '')
     scatter.save_image('%s/echo_chamber_polarity_weight_mean_aggre.png'%(folder_name))
 
-   
+def item_contain_count(list1, list2):
+    count = 0
+    for item1 in list1:
+        if item1 in list2:
+            count +=1
+    result = list(map(lambda x: x in list2, list1))
+    return result.count(True)
+
+def degree_usernum_correlation():
+    with open('Data/echo_chamber2.json', 'r') as f:
+        echo_chamber = json.load(f)
+
+    g = load_graph(graph_name)
+    vprop = g.vertex_properties['vertex']
+    eprop = g.edge_properties['edge']
+    eweight = g.edge_properties['weight']
+
+    #top degree rank echo chamber 
+
+    usernum_list = []
+    with open('Data/network_key.json', 'r') as f:
+        vertex_keys = json.load(f)
+
+    with open('Data/top_users.json', 'r') as f:
+        top_users = json.load(f)
+        top_users = top_users['top_1']
+        #top_users = top_users['top_100']
+
+
+    top_user_count = []
+    for v in g.vertices():
+        users = echo_chamber[vertex_keys[str(v)]]    
+        top_user_count.append(item_contain_count(users, top_users))
+        usernum_list.append(len(users))
+    degree_list = g.get_out_degrees(g.get_vertices())
+
+    userlist = []
+    degreelist = []
+    topuserlist = []
+    for user, degree, top in zip(usernum_list, degree_list, top_user_count):
+        if degree < 1:
+            continue
+        userlist.append(user)
+        degreelist.append(degree)
+        topuserlist.append(top)
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_ylim(0, max(degreelist))
+    scatter.set_xlim(0, 10000)
+    scatter.set_label('Number of Users', 'Degree')
+    scatter.set_data(userlist, degreelist)
+    scatter.save_image('%s/usernum_degree_correlation%s.png'%(folder_name, weight_filter))
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_ylim(0, 10000)
+    scatter.set_xlim(0, max(degreelist))
+    scatter.set_label('Degree', 'Number of Users')
+    scatter.set_data(userlist, degreelist)
+    scatter.save_image('%s/degree_usernum_correlation%s.png'%(folder_name, weight_filter))
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    #scatter.set_ylog()
+    scatter.set_ylim(0, 1000)
+    scatter.set_xlim(0, 10000)
+    scatter.set_label('Number of Users', 'Number of Top Spreaders')
+    #scatter.set_data(usernum_list, degree_list)
+    scatter.set_data(userlist, topuserlist)
+    scatter.save_image('%s/usernum_topuser_correlation%s.png'%(folder_name, weight_filter))
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    #scatter.set_ylog()
+    scatter.set_ylim(0, 1000)
+    scatter.set_xlim(0, 1000)
+    scatter.set_label('Degree', 'Number of Top Spreaders')
+    #scatter.set_data(usernum_list, degree_list)
+    scatter.set_data(degreelist, topuserlist)
+    scatter.save_image('%s/degree_topuser_correlation%s.png'%(folder_name, weight_filter))
+
+def rank_correlation():
+    tweet_cache = {}
+    with open('Data/echo_chamber2.json', 'r') as f:
+        echo_chamber = json.load(f)
+
+    g = load_graph(graph_name)
+    vprop = g.vertex_properties['vertex']
+    eprop = g.edge_properties['edge']
+    eweight = g.edge_properties['weight']
+
+    #top degree rank echo chamber 
+
+    usernum_list = []
+    with open('Data/network_key.json', 'r') as f:
+        vertex_keys = json.load(f)
+
+    with open('Data/top_users.json', 'r') as f:
+        top_users = json.load(f)
+        top_users = top_users['top_1']
+        #top_users = top_users['top_100']
+    
+    #pr = pagerank(g)
+    vp, ep = betweenness(g)
+    #c = closeness(g)
+    pr = vp
+
+
+    #degree, weighted degree rank 
+    weighted_degree = {}
+    degree = {}
+    for i, num in enumerate(g.get_out_degrees(g.get_vertices())):
+        degree[i] = num
+
+    p_rank = {}; b_rank = {}; c_rank = {}
+    i = 0
+    import math
+    for p_v in pr:
+        if not math.isnan(p_v):
+            p_rank[i] = p_v 
+        i += 1
+
+    sort = sorted(p_rank.items(), key=itemgetter(1), reverse=True)
+    #sort = sorted(degree.items(), key=itemgetter(1), reverse=True)
+
+    keys = [vprop[item[0]] for item in sort]
+    degree_list = g.get_out_degrees([item[0] for item in sort])
+    print(degree_list)
+    top_user_count = []
+    usernum_list = []
+    rank_list = []
+    for i, v in enumerate(keys):
+        if degree_list[i] < 1:
+            continue
+        users = echo_chamber[v]    
+        top_user_count.append(item_contain_count(users, top_users))
+        usernum_list.append(len(users))
+        rank_list.append(i+1)
+    
+    ranklist = []
+    userlist = []
+    topuserlist = []
+    for user, rank, top in zip(usernum_list, rank_list, top_user_count):
+        userlist.append(user)
+        ranklist.append(rank)
+        topuserlist.append(top)
+
+    print('all length', len(ranklist)) 
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_ylim(0, max(ranklist))
+    scatter.set_xlim(0, 10000)
+    scatter.set_label('Number of Users', 'Rank')
+    scatter.set_data(userlist, ranklist)
+    scatter.save_image('%s/usernum_rank_correlation%s.png'%(folder_name, weight_filter))
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_ylim(0, 10000)
+    scatter.set_xlim(1, max(ranklist))
+    scatter.set_label('Rank', 'Number of Users')
+    scatter.set_data(ranklist, userlist)
+    scatter.save_image('%s/rank_usernum_correlation%s.png'%(folder_name, weight_filter))
+    
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    #scatter.set_ylog()
+    scatter.set_ylim(0, 1000)
+    scatter.set_xlim(0, 10000)
+    scatter.set_label('Number of Users', 'Number of Top Spreaders')
+    scatter.set_data(userlist, topuserlist)
+    scatter.save_image('%s/usernum_topuser_correlation%s.png'%(folder_name, weight_filter))
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_ylim(0, max(ranklist))
+    scatter.set_xlim(0, 1000)
+    scatter.set_label('Number of Top Spreaders', 'Rank')
+    scatter.set_data(topuserlist, ranklist)
+    scatter.save_image('%s/topuser_rank_correlation%s.png'%(folder_name, weight_filter))
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_ylim(0, 1000)
+    scatter.set_xlim(1, max(ranklist))
+    scatter.set_label('Rank', 'Number of Top Spreaders')
+    scatter.set_data(ranklist, topuserlist)
+    scatter.save_image('%s/rank_topuser_correlation%s.png'%(folder_name, weight_filter))
+
+ 
+
+
+#initating ratio of echo chamber 
+def initiating_ratio():
+
+    tweet_cache = {}
+    with open('Data/echo_chamber2.json', 'r') as f:
+        echo_chamber = json.load(f)
+
+    g = load_graph(graph_name)
+    vprop = g.vertex_properties['vertex']
+    eprop = g.edge_properties['edge']
+    eweight = g.edge_properties['weight']
+
+    #top degree rank echo chamber 
+
+    usernum_list = []
+    with open('Data/network_key.json', 'r') as f:
+        vertex_keys = json.load(f)
+
+    #maybe we change the order of node 
+    
+    pr = pagerank(g)
+
+    #degree, weighted degree rank 
+    weighted_degree = {}
+    degree = {}
+    for i, num in enumerate(g.get_out_degrees(g.get_vertices())):
+        degree[i] = num
+
+    p_rank = {}; b_rank = {}; c_rank = {}
+    i = 0
+    import math
+    for p_v in pr:
+        if not math.isnan(p_v):
+            p_rank[i] = p_v 
+        i += 1
+
+    p_sort = sorted(p_rank.items(), key=itemgetter(1), reverse=True)
+    d_sort = sorted(degree.items(), key=itemgetter(1), reverse=True)
+    #p_sort.reverse()
+    #d_sort.reverse()
+
+    
+    #print(g.get_vertices())
+    #print([item[0] for item in d_sort])
+    degree_list = g.get_out_degrees([item[0] for item in d_sort])
+    keys = [vprop[item[0]] for item in p_sort]
+    keys = [vprop[item[0]] for item in d_sort]
+    #for v in g.vertices():
+    
+    
+    node_count = np.count_nonzero(g.get_out_degrees(g.get_vertices()))
+    print('node which has edge : %s'%node_count)
+    
+    echo = []
+    nonecho = []
+    all_type = []
+    top_user_count = []
+    bottom_user_count = []
+    top_10 = node_count * 0.2
+    bottom_10 = node_count * 0.8
+    print(bottom_10)
+    print(len(degree_list))
+    print(len(keys))
+    for num, echo_id in enumerate(keys):
+        #if node has no edge 
+        if degree_list[num] < 1:
+            continue
+
+        users = echo_chamber[echo_id]
+        postids = echo_id.split('_')
+        for pid in postids:
+            if tweet_cache.get(pid, None) == None:
+                f = open('RetweetNew/' + pid, 'r')
+                tweets = json.load(f)
+                f.close
+                tweet_cache[pid] = tweets
+            else:
+                tweets = tweet_cache.get(pid)
+
+            echo_root = 0
+            necho_root = 0
+            all_root = 0
+            for tweet in tweets.values():
+                user= tweet['user']
+                if tweet['depth'] == 1:
+                    all_root += 1
+                    if user in users:
+                        echo_root += 1
+                    else:
+                        necho_root += 1
+                
+            if top_10 > num:
+                top_user_count.append(echo_root)
+            if bottom_10 < num:
+                bottom_user_count.append(echo_root)
+            
+            
+            echo.append(echo_root)
+            nonecho.append(necho_root)
+            all_type.append(all_root)
+
+    cdf = CDFPlot()
+    cdf.set_label('Root Node', 'CDF')
+    cdf.set_log(True)
+    cdf.set_data(echo, '')
+    cdf.set_data(nonecho, '')
+    cdf.set_data(all_type, '')
+    cdf.set_legends(['Echo Chamber', 'Non Echo Chamber', 'All'], 'User Type')
+    cdf.save_image("%s/root_node_echo_distribution"%(folder_name))
+
+    echo.sort()
+    top_user_count.sort()
+    bottom_user_count.sort()
+    print(bottom_user_count)
+    #unit 1 %
+    unit = int(len(echo) /100)
+    e_portion_list = []
+    #print('all length : %s'%(len(echo)))
+    for i in range(100):
+        #print('[%s-%s] : %s'%(unit * i, unit * (i+1), sum(echo[i * unit : (i + 1)*unit])))
+        if i == 99:
+            e_portion_list.append(sum(e_portion_list[-1:]) + sum(echo[i * unit :]))
+        else:
+            e_portion_list.append(sum(e_portion_list[-1:]) + sum(echo[i * unit :(i + 1)*unit]))
+    
+    unit = int(len(top_user_count) /100)
+    ne_portion_list = []
+    for i in range(100):
+        #print('[%s-%s] : %s'%(unit * i, unit * (i+1), sum(top_user_count[i * unit : (i + 1)*unit])))
+        if i == 99:
+            ne_portion_list.append(sum(ne_portion_list[-1:]) + sum(top_user_count[i * unit :]))
+        else:
+            ne_portion_list.append(sum(ne_portion_list[-1:]) + sum(top_user_count[i * unit :(i + 1)*unit]))
+
+    unit = int(len(bottom_user_count) /100)
+    bottom_portion_list = []
+    for i in range(100):
+        #print('[%s-%s] : %s'%(unit * i, unit * (i+1), sum(bottom_user_count[i * unit : (i + 1)*unit])))
+        if i == 99:
+            bottom_portion_list.append(sum(bottom_portion_list[-1:]) + sum(bottom_user_count[i * unit :]))
+        else:
+            bottom_portion_list.append(sum(bottom_portion_list[-1:]) + sum(bottom_user_count[i * unit :(i + 1)*unit]))
+
+
+    scatter = ScatterPlot()
+    scatter.set_ylim(0, 110)
+    scatter.set_xlim(0, 110)
+    scatter.set_label('Cumulative Users\nfrom the Lowest to the Highest Echo Chambers', 'Cumulative Portion of Root')
+    sum_of_portion = sum(e_portion_list[-1:])
+    ne_sum_of_portion = sum(ne_portion_list[-1:])
+    bottom_sum_of_portion = sum(bottom_portion_list[-1:])
+    values = [(item / sum_of_portion) * 100 for item in e_portion_list]
+    ne_values = [(item / ne_sum_of_portion) * 100 for item in ne_portion_list]
+    bottom_values = [(item / bottom_sum_of_portion) * 100 for item in bottom_portion_list]
+
+    values = np.insert(values, 0, 0)
+    ne_values = np.insert(ne_values, 0, 0)
+    bottom_values = np.insert(bottom_values, 0, 0)
+    #print(ne_portion_list)
+    #print(ne_values)
+    #print(bottom_portion_list)
+    #print(bottom_values)
+
+    scatter.set_data(np.arange(0, len(e_portion_list) + 1), values)
+    scatter.set_data(np.arange(0, len(ne_portion_list) + 1), ne_values)
+    scatter.set_data(np.arange(0, len(bottom_portion_list) + 1), bottom_values)
+    scatter.set_legends(['All', 'Top', 'Bottom'], '')
+    scatter.save_image('%s/echo_root_ratio%s.png'%(folder_name, weight_filter))
+
+
+    print(ne_values)
+    print('gini : %s'%my_util.gini(values))
+    print('top gini : %s'%my_util.gini(ne_values))
+    print('bottom gini : %s'%my_util.gini2(bottom_values))
+    
+
 
 if __name__ == "__main__":
-    folder_name = 'Image/20181023'
+    folder_name = 'Image/20181029'
     graph_name = 'Data/graph%s.xml.gz'
     start = time()
     #find_echo_chamber_network()
@@ -1049,10 +1434,13 @@ if __name__ == "__main__":
         weight_filter = sys.argv[1]
         graph_name = graph_name%weight_filter
         print('load ', graph_name)
-    #analyze_echo_chamber_network()
+    analyze_echo_chamber_network()
     #network_analysis()
     #rank_depth_distribution()
-    polarity_weight_correlation()
+   # polarity_weight_correlation()
+    #degree_usernum_correlation()
+    #rank_correlation()
+    #initiating_ratio()
     end = time()
     print('%s takes'%(end - start))
 

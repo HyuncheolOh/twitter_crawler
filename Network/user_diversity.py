@@ -1,4 +1,5 @@
 #user's polarity diversity 
+from __future__ import division
 import os, sys, time
 import json
 import util
@@ -11,6 +12,7 @@ import matplotlib
 from time import time 
 from draw_tools.box_plot import BoxPlot
 from draw_tools.cdf_plot import CDFPlot
+from draw_tools.ccdf_plot import CCDFPlot
 from draw_tools.line_plot import LinePlot
 from draw_tools.scatter_plot import ScatterPlot
 import draw_tools.pdf as pdf
@@ -32,9 +34,9 @@ def get_polarity(userid):
         elif p < -2:
             p = -2
 
-        #return p / 2 #return -1 ~ 1 
-        p += 2 
-        return p / 4 #return -1 ~ 1 
+        return p / 2 #return -1 ~ 1 
+        #p += 2 
+        #return p / 4 #return -1 ~ 1 
     except KeyError as e:
         return -999
 
@@ -430,22 +432,35 @@ def mean_edge_homogeneity(filename):
                     e_homogeneity.append(mean_edge_homogeneity)
                 else:
                     ne_homogeneity.append(mean_edge_homogeneity)
-       
-    pdf.draw_pdf({'e': e_homogeneity, 'ne': ne_homogeneity}, 'Mean Edge Homogeneity', ['Echo Chambers' , 'Non Echo Chambers'], 'Image/%s/mean_edge_homogeneity.png'%foldername)
+    with open('Data/Figure/4_2_1.json', 'w') as f:
+        json.dump({'e': e_homogeneity, 'ne': ne_homogeneity}, f)
 
+
+    pdf.draw_pdf({'e': e_homogeneity, 'ne': ne_homogeneity}, 'Mean Edge Homogeneity', ['Echo Chambers' , 'Non Echo Chambers'], 'Image/%s/mean_edge_homogeneity.png'%foldername)
     return e_homogeneity
 
 
 
-def draw_cdf_plot(datas, datatype, legend, legend_type, filename):
+def draw_cdf_plot(datas, datatype, legend, legend_type, filename, log_scale=True):
     cdf = CDFPlot()
     cdf.set_label(datatype, 'CDF')
-    #cdf.set_log(True)
+    cdf.set_log(log_scale)
     for i in range(len(datas)):
         cdf.set_data(datas[i], legend[i])
     if len(legend) > 1:
         cdf.set_legends(legend, legend_type)
     cdf.save_image('Image/%s/%s.png'%(foldername, filename))
+
+def draw_ccdf_plot(datas, datatype, legend, legend_type, filename, log_scale=True):
+    cdf = CCDFPlot()
+    cdf.set_label(datatype, 'CCDF')
+    cdf.set_log(log_scale)
+    for i in range(len(datas)):
+        cdf.set_data(datas[i])
+    if len(legend) > 1:
+        cdf.set_legends(legend, legend_type)
+    cdf.save_image('Image/%s/%s.png'%(foldername, filename))
+
 
 
 def echo_chamber_diversity():
@@ -494,7 +509,7 @@ def echo_chamber_similarity():
     
     similarities2 = []
     retweet_cache = {}
-    for i in range(1000000):
+    for i in range(100000):
         if i % 10000 == 0:
             print(i)
         
@@ -525,15 +540,17 @@ def echo_chamber_similarity():
 
 
     #draw_cdf_plot([similarities, similarities2], 'Homogeneity', ['Echo Chamber', 'Random Sampling'], 'User Type', 'echo_chamber_political_diversity')
+    with open('Data/Figure/4_2_2.json', 'w') as f:
+        json.dump({'e': similarities, 'ne': similarities2}, f)
+
     pdf.draw_pdf({'e': similarities, 'ne': similarities2}, 'Homogeneity', ['Echo Chamber', 'Random Sampling'], 'Image/%s/echo_chamber_political_diversity_pdf.png'%foldername)
 
 
 #compare general echo chamber users and ranked degree echo chamber users 
 def echo_chamber_similarity_ranked():
-    files = ['Data/echo_chamber2.json', 'Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
-    #files = ['Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
-    #files = ['Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
-    
+    #files = ['Data/echo_chamber2.json', 'Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json']
+    #files = ['Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/lowranked_weight2_echo_chamber.json', 'Data/lowranked_weight5_echo_chamber.json']
+    files = ['Data/ranked_weight5_echo_chamber.json','Data/lowranked_weight5_echo_chamber.json']
 
     similarities = {}
     for i in range(6):
@@ -544,35 +561,86 @@ def echo_chamber_similarity_ranked():
         with open(ranked_f, 'r') as f:
             echo_chamber = json.load(f)
             for key in echo_chamber.keys():
-                print(key)
+                #print(key)
                 users = echo_chamber[key]
                 if len(users) < 2:
                     continue
 
                 if type(users) == dict:
                     users = users.keys()
-                #check similarity 
-                for i in range(len(users)):
-                    users1 = users[i]
-                    p1 = get_polarity(users1)
-                    for j in range(i +1, len(users)):
-                        users2 = users[j]
-                        p2 = get_polarity(users2)
 
-                        if p1 == -999 or p2 == -999:
-                            continue
-                        similarity = p1 * p2
-                        similarities[f_index].append(similarity)
+                similarities[f_index].extend(get_user_polarity(users))
 
+    #print('save as data file')
+    #with open('Data/political_similarity_ranked.json'):
+    #    json.dump({'rank2' : similarities[0], 'rank5' : similarities[1], 'lowrank2' : similarities[2], 'lowrank5' : similarities[3]})
+    data = [similarities[i] for i in range(len(files))]
+    with open('Data/Figure/6_2_2.json', 'w') as f:
+        json.dump(data, f)
+    print('extracting pdf png files')
     #compare ranked echo chambers based on weight filtering 
-    pdf.draw_multiline_pdf([similarities[i] for i in range(6)], 'Homogeneity', ['All Echo Chamber', 'Weight 2', 'Weight 5', 'Weight 10', 'Weight 50', 'Weight 100'], 'Image/%s/echo_chamber_political_diversity_rank_pdf.png'%foldername)
-    draw_cdf_plot([similarities[i] for i in range(6)], 'Homogeneity', ['All Echo Chamber', 'Weight 2', 'Weight 5', 'Weight 10', 'Weight 50', 'Weight 100'], 'Echo Chamber Type', 'echo_chamber_political_diversity_rank_cdf')
+    pdf.draw_multiline_pdf(data, 'Homogeneity', ['Upper Class', 'Lower Class'], 'Image/%s/echo_chamber_political_diversity_rank_pdf5.png'%foldername)
+    print('extracting cdf png files')
+    #compare ranked echo chambers based on weight filtering 
+    #draw_cdf_plot([similarities[i] for i in range(len(files))], 'Homogeneity', ['Upper Class', 'Lower Class'], '', 'echo_chamber_political_diversity_rank_cdf5')
+
 
 def mean_edge_homogeneity_comparison():
-    #files = ['Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
-    #pdf.draw_multiline_pdf([mean_edge_homogeneity(ranked_f) for ranked_f in files], 'Homogeneity', ['Weight 2', 'Weight 5', 'Weight 10', 'Weight 50', 'Weight 100'], 'Image/%s/echo_chamber_mean_edge_homogeneity_rank_pdf.png'%foldername)
-    files = ['Data/echo_chamber2.json', 'Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/ranked_weight10_echo_chamber.json', 'Data/ranked_weight50_echo_chamber.json', 'Data/ranked_weight100_echo_chamber.json']
-    pdf.draw_multiline_pdf([mean_edge_homogeneity(ranked_f) for ranked_f in files], 'Mean Edge Homogeneity', ['All Echo Chamber', 'Weight 2', 'Weight 5', 'Weight 10', 'Weight 50', 'Weight 100'], 'Image/%s/echo_chamber_mean_edge_homogeneity_rank_pdf.png'%foldername)
+    #files = ['Data/echo_chamber2.json', 'Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/lowranked_weight2_echo_chamber.json', 'Data/lowranked_weight5_echo_chamber.json']
+    files = ['Data/ranked_weight5_echo_chamber.json', 'Data/lowranked_weight5_echo_chamber.json']
+    pdf.draw_multiline_pdf([mean_edge_homogeneity(ranked_f) for ranked_f in files], 'Mean Edge Homogeneity', ['Upper Class', 'Lower Class'], 'Image/%s/echo_chamber_mean_edge_homogeneity_rank_pdf5.png'%foldername)
+
+    #files = ['Data/ranked_weight2_echo_chamber.json', 'Data/lowranked_weight2_echo_chamber.json']
+    #pdf.draw_multiline_pdf([mean_edge_homogeneity(ranked_f) for ranked_f in files], 'Mean Edge Homogeneity', ['Upper Class', 'Lower Class'], 'Image/%s/echo_chamber_mean_edge_homogeneity_rank_pdf2.png'%foldername)
+
+    #files = ['Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/lowranked_weight2_echo_chamber.json', 'Data/lowranked_weight5_echo_chamber.json']
+    child_list = [child_num_of_echo_chamber(files[i]) for i in range(len(files))]
+    user_list = [user_num_of_echo_chamber(files[i]) for i in range(len(files))]
+  
+    draw_cdf_plot([user_num_of_echo_chamber(files[i]) for i in range(len(files))], 'User Count', ['Upper Class', 'Lower Class'], '', 'echo_chamber_user_num_rank_cdf')
+    draw_cdf_plot(child_list, 'Child Count', ['Upper Class', 'Lower Class'], '', 'echo_chamber_child_num_rank_cdf')
+
+    #draw_ccdf_plot([user_num_of_echo_chamber(files[i]) for i in range(len(files))], 'User Count', ['Upper weight2', 'Upper weight5', 'Lower weight2', 'Lower weight5'], 'Echo Chamber Type', 'echo_chamber_user_num_rank_ccdf')
+    #draw_ccdf_plot(child_list, 'Child Count', ['Upper weight2', 'Upper weight5', 'Lower weight2', 'Lower weight5'], 'Echo Chamber Type', 'echo_chamber_child_num_rank_ccdf')
+
+    print('child count')
+    for item in child_list:
+        print("%s / %s : %s"%(item.count(1), len(item), item.count(1)/len(item)))
+
+    print('user count')
+    for item in user_list:
+        print(item)
+
+def user_num_of_echo_chamber(filename):
+    user_num = []
+    with open(filename, 'r') as f:
+        echo_chamber = json.load(f)
+        
+        for key in echo_chamber:
+            user_num.append(len(echo_chamber[key]))
+
+    return user_num
+
+def child_num_of_echo_chamber(filename):
+    child_num = []
+    with open(filename, 'r') as f:
+        echo_chamber = json.load(f)
+        
+        for key in echo_chamber:
+            #print(len(echo_chamber[key]))
+
+            users = echo_chamber[key]
+            with open('RetweetNew/' + key , 'r') as f:
+                tweets = json.load(f)
+
+                for tweet in tweets.values():
+                    if tweet['user'] in users:
+                        if tweet['child'] > 0:
+                            child_num.append(tweet['child'])
+
+    return child_num
+
+
 
 #echo chamber's group homogeneity median value per size
 def echo_chamber_group_homogeneity_size():
@@ -632,15 +700,15 @@ def echo_chamber_group_homogeneity_size():
 
 if __name__ == "__main__":
     start = time()
-    foldername = '20181022'
+    foldername = '20181029'
     dir_name = 'RetweetNew/'
     #echo_chamber_diversity()
     #polarity_diversity()
     #edge_homogeneity()
-    #mean_edge_homogeneity()
+    #mean_edge_homogeneity('Data/echo_chamber2.json')
     #echo_chamber_similarity()
     #mean_edge_homogeneity_comparison()
-    #echo_chamber_similarity_ranked()
-    echo_chamber_group_homogeneity_size()
+    echo_chamber_similarity_ranked()
+    #echo_chamber_group_homogeneity_size()
     end = time()
     print('%s taken'%(end-start))

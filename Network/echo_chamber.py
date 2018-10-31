@@ -10,6 +10,7 @@ import echo_chamber_util as e_util
 from time import time 
 from draw_tools.cdf_plot import CDFPlot
 from draw_tools.ccdf_plot import CCDFPlot
+from draw_tools.box_plot import BoxPlot
 
 def sql_connect():
     conn = MySQLdb.connect(host="localhost", user="root", passwd="mmlab", db="fake_news", use_unicode=True, charset='utf8')
@@ -177,6 +178,7 @@ def get_cascade_max_breadth():
     print("Max cascade, max depth, unique users of cascade calculation done")
     return c_breadth, c_depth, c_unique_users
 
+#find echo chamber users'depth, cascade, breadth and those of non echo chamber users 
 def echo_chamber_anlysis(file_name, veracity):
     cache = {}
     echo_chamber_depth = {}
@@ -236,38 +238,62 @@ def echo_chamber_anlysis(file_name, veracity):
         #if ccc == 10:
         #    break
     return ((e_depth, e_cascade, e_child), (ne_depth, ne_cascade, ne_child))
-    """
-    files = os.listdir('RetweetNew')
-    depth_all = []
-    cascade_all = []
-    child_all = []
-    for postid in files:
-        if cache.get(postid, -1) == -1:
-            with open('RetweetNew/' + postid, 'r') as f:
-                tweets = json.load(f)
-                cache[postid] = tweets
-        else:
-            tweets = cache[postid]
-
-        for td in tweets:
-            try:
-                depth_all.append(tweets[td]['depth'])
-                cascade_all.append(tweets[td]['cascade'])
-                child_all.append(tweets[td]['child'])
-            except KeyError as e:
-                print(postid)
-    """
-    return {'depth':echo_chamber_depth, 'child':echo_chamber_child, 'cascade':echo_chamber_cascade, 'breadth':echo_chamber_breadth}
-    
-    #with open('Data/depth_echochamber3.json', 'w') as f:
-    #    #json.dump({'echo_chamber':echo_chamber_depth, 'all': depth_all} , f)
-    #    json.dump({'echo_chamber': {'depth':echo_chamber_depth, 'child':echo_chamber_child, 'cascade':echo_chamber_cascade, 'breadth':echo_chamber_breadth}, 'all': {'depth':depth_all, 'cascade':cascade_all, 'child':child_all, 'breadth':cascade_breadth}}, f)
+   
 def get_list(data, key):
     return list(itertools.chain(*[item.values() for item in data[key].values()]))[0]
 
+#echo chamber and non echo chamber depth, breadth distribution from echo chamber participated cascades
+def echo_chamber_user_characteristics():
+    echo_chamber_users = e_util.get_echo_chamber_users('Data/echo_chamber2.json')
+
+    #find cascades that echo chamber users participated (root id)
+    tweet_cache = {}
+    echo_chamber_cascades = {}
+    for postid in echo_chamber_users.keys():
+        
+        users = echo_chamber_users[postid] #echo chamber users 
+
+        with open('RetweetNew/' + postid, 'r') as f:
+            tweets = json.load(f)
+            tweet_cache[postid] = tweets
+            
+            for tweet in tweets.values():
+                if tweet['user'] in users:
+                    root_id = tweet['origin_tweet'] #root tweet id 
+                    echo_chamber_cascades[root_id] = 1
+        
+    echo_chamber_cascades_ids = echo_chamber_cascades.keys()
+    e_depth = []; e_child = []; ne_depth = []; ne_child = [];
+    for postid in echo_chamber_users.keys():
+        tweets = tweet_cache[postid]
+        users = echo_chamber_users[postid]
+
+        for tweet in tweets.values():
+            if tweet['origin_tweet'] not in echo_chamber_cascades_ids:
+                continue
+
+            if tweet['user'] in users:
+                e_depth.append(tweet['depth'])
+                e_child.append(tweet['child'])
+            else:
+                ne_depth.append(tweet['depth'])
+                ne_child.append(tweet['child'])
+
+    print('Data save in Data/Figure/5_1_1_2.json')
+    with open('Data/Figure/5_1_1_2.json', 'w') as f:
+        json.dump({'e_depth':e_depth, 'e_child' : e_child, 'ne_depth':ne_depth, 'ne_child':ne_child}, f)
+
+    draw_cdf_plot([e_depth, ne_depth], 'Depth', ['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_depth_user_distribution'%folder, log_scale=False)
+    draw_cdf_plot([e_child, ne_child], 'Child', ['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_child_user_distribution'%folder)
+
+    
+
+#echo chamber and non echo chamber depth, breadth distribution
 def draw_echo_chamber_true_false():
     echo_chamber, non_echo_chamber = echo_chamber_anlysis('Data/echo_chamber2.json', 'All')
 
+    with open('Data/Figure/5_1_1.json', 'w') as f:
+        json.dump({'echo' : echo_chamber, 'necho' : non_echo_chamber}, f)
 
     #draw_cdf_plot([path_distribution, path_distribution2], 'Ratio', ['type1', 'type2'], '', 'Image/%s/echo_chamber_path_ratio2')
     draw_cdf_plot([echo_chamber[0], non_echo_chamber[0]], 'Depth', ['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_depth'%folder, log_scale=False)
@@ -594,18 +620,21 @@ def draw_echo_chamber_cascade_chracteristics():
     echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber2.json')
     end_time = time()
     print('echo chamber2 takes %s'%(end_time - start_time))
-    
+    with open('Data/Figure/5_1_2.json', 'w') as f:
+        json.dump({'echo':echo_chamber_values, 'necho':non_echo_chamber_values}, f)
+
     #echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber2.json')
-    draw_cdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_depth3'%folder) 
-    draw_cdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_breadth3'%folder) 
-    draw_cdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_cascade3'%folder) 
-    draw_cdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_unique_users3'%folder) 
+    draw_cdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',[], '', 'Image/%s/echo_depth3'%folder) 
+    draw_cdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',[], 'User Type', 'Image/%s/echo_breadth3'%folder) 
+    draw_cdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',[], 'User Type', 'Image/%s/echo_cascade3'%folder) 
+    draw_cdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',[], 'User Type', 'Image/%s/echo_unique_users3'%folder) 
    
     draw_ccdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_depth3_ccdf'%folder) 
     draw_ccdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_breadth3_ccdf'%folder) 
     draw_ccdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_cascade3_ccdf'%folder) 
     draw_ccdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_unique_users3_ccdf'%folder) 
 
+    return 
     #degree ranked cascade 
     with open('Data/degree_ranked_users.json', 'r') as f:
         ranked_users = json.load(f)
@@ -902,6 +931,7 @@ def propagation_within_echo_chamber():
     Bot = bot.load_bot()
     
     #cascade that echo chamber users particiate in
+    cascade_size = {}
     cascade_path = {}
     cascade_node = {} #echo chamber node count in a cascade
     cascade_depth = {}
@@ -939,7 +969,7 @@ def propagation_within_echo_chamber():
                     retweet_cache[postid] = tweets
             else:
                 tweets = retweet_cache[postid]
-        
+            cascade_size[key] = {}
             cascade_path[key] = {}
             cascade_node[key] = {}
             cascade_depth[key] = {}
@@ -947,16 +977,21 @@ def propagation_within_echo_chamber():
             ne_cascade_node[key] = {}
             ne_cascade_depth[key] = {}
 
+
+            #check a node is from whom (for echo chamber, non echo chamber node)
             for tweet in tweets.values():
+                if tweet['cascade'] == 1:
+                    continue
+
+                cascade_size[key][tweet['origin_tweet']] = tweet['cascade']
                 if tweet['user'] in echo_users:
                     #check the parent is echo chamber user 
                     if tweet['user'] != tweet['parent'] and tweet['parent'] in echo_users.keys() and tweet['depth'] != 1:
                         cascade_path[key][tweet['origin_tweet']] = cascade_path[key].get(tweet['origin_tweet'], 0) + 1 
                     
+                    #node count in the cascade. if a node is not a root node, then increase the count
                     if tweet['depth'] != 1:
                         cascade_node[key][tweet['origin_tweet']] = cascade_node[key].get(tweet['origin_tweet'], 0) + 1 
-                    #else:
-                    #    print(tweet['user'], tweet['origin'])
                         
                     if cascade_depth[key].get(tweet['origin_tweet'], 0) < tweet['depth']: # max depth
                         cascade_depth[key][tweet['origin_tweet']] = tweet['depth']
@@ -967,26 +1002,38 @@ def propagation_within_echo_chamber():
                     
                     if tweet['depth'] != 1:
                         ne_cascade_node[key][tweet['origin_tweet']] = ne_cascade_node[key].get(tweet['origin_tweet'], 0) + 1 
-                    #else:
-                    #    print(tweet['user'], tweet['origin'])
                         
                     if ne_cascade_depth[key].get(tweet['origin_tweet'], 0) < tweet['depth']: # max depth
                         ne_cascade_depth[key][tweet['origin_tweet']] = tweet['depth']
         ccc += 1 
         #if ccc > 100:
         #    break
-    for postid in cascade_path.keys(): #rumor
-        #print(postid)
-        for cascade in cascade_path[postid].keys(): #cascade
+
+    for postid in cascade_path.keys(): #echo chamber
+    #    print(postid)
+        for cascade in cascade_path[postid].keys(): #cascade id
             #print(cascade)
+            #path_num : number of node receive rumors from echo chamber nodes 
+            #node_num : number of node in the cascade
             path_num = cascade_path[postid][cascade]
             node_num = cascade_node[postid][cascade]
             #if node_num == 1:
             #    continue
-            #print('Path : %s / %s, Depth : %s'%(path_num, node_num , cascade_depth[postid][cascade])) # if they are same then, all rumor propagate within echo chambers 
+            #print('Path : %s / %s, Size : %s'%(path_num, node_num , cascade_size[postid][cascade])) # if they are same then, all rumor propagate within echo chambers 
+            """
+            try :
+                path_num2 = ne_cascade_path[postid][cascade]
+                node_num2 = ne_cascade_node[postid][cascade]
+            except KeyError:
+                pass
+            print('%s / %s, %s / %s, Size : %s'%(path_num, node_num, path_num2, node_num2, cascade_size[postid][cascade]))
+            """
+
+
             #print(path_num / node_num, round(path_num / node_num, 1))
-            path_distribution.append(round(path_num/node_num, 1))
-         
+            #path_distribution.append(round(path_num/node_num, 3))
+            path_distribution.append(path_num/node_num)
+     
     for postid in ne_cascade_path.keys(): #rumor
         #print(postid)
         for cascade in ne_cascade_path[postid].keys(): #cascade
@@ -994,11 +1041,14 @@ def propagation_within_echo_chamber():
             node_num = ne_cascade_node[postid][cascade]
             if node_num == 1:
                 continue
-            path_distribution2.append(round(path_num/node_num, 1))
+            #path_distribution2.append(round(path_num/node_num, 3))
+            path_distribution2.append(path_num/node_num)
     
     #draw_cdf_plot([path_distribution], 'Ratio', [''], '', 'Image/%s/echo_chamber_path_ratio')
     #draw_cdf_plot([path_distribution2], 'Ratio', [''], '', 'Image/%s/echo_chamber_path_ratio2'%folder)
-    draw_cdf_plot([path_distribution, path_distribution2], 'Ratio', ['Echo Chamber', 'Non Echo chamber'], 'User Type', 'Image/%s/echo_chamber_path_ratio2'%folder)
+    with open('Data/Figure/5_1_3_2.json', 'w') as f:
+        json.dump([path_distribution, path_distribution2], f)
+    draw_cdf_plot([path_distribution, path_distribution2], 'Ratio', ['Echo Chamber', 'Non Echo chamber'], '', 'Image/%s/echo_chamber_path_ratio2'%folder, log_scale=False)
 
 #search how many nodes (tweets) receive from echo chamber users 
 def echo_chamber_rumor_spread():
@@ -1031,11 +1081,14 @@ def echo_chamber_rumor_spread():
 def depth_analysis():
     echo_chamber_users = e_util.get_echo_chamber_users('Data/echo_chamber2.json')
     files = os.listdir('RetweetNew')
+    follower_path = '../Data/followers/followers/'
 
     d = {}
+    n = {}
     for i in range(1, 20):
         d[i] = []
-   
+        n[i] = []
+
     for ccc, postid in enumerate(files):
         users = echo_chamber_users[postid]
 
@@ -1043,8 +1096,34 @@ def depth_analysis():
             tweets = json.load(f)
 
             for tweet in tweets.values():
-                if tweet['user'] in users:
+                user = tweet['user']
+                with open(follower_path + user, 'r') as f:
+                    followers = json.load(f)
+                if user in users:
                     d[tweet['depth']].append(tweet['cascade'])
+                    d[tweet['depth']].append(len(followers))
+                else:
+                    n[tweet['depth']].append(len(followers))
+
+        if ccc == 100:
+            break
+
+    draw_cdf_plot([d[i] for i in range(1,6)], 'Follower Size', ['1', '2', '3', '4', '5'], 'Depth', 'Image/%s/follower_num_per_depth_cdf'%folder)
+ 
+    box = BoxPlot(1)
+    box.set_multiple_data([d, n])
+    box.set_ylog()
+    box.set_label('Depth', 'Follower Count')
+    box.save_image('Image/%s/follower_num_per_depth_box.png'%folder)
+
+
+
+    a = []; b = []
+    a.extend(d[1])
+    a.extend(d[2])
+    for i in range(3,15):
+        b.extend(d[i]) 
+    draw_cdf_plot([a, b], 'Cascade Size', ['1-2', '3-max'], 'Depth', 'Image/%s/cascade_size_per_depth2'%folder)
 
 
     draw_cdf_plot([d[i] for i in range(1,5)], 'Cascade Size', ['1', '2', '3', '4'], 'Depth', 'Image/%s/cascade_size_per_depth'%folder)
@@ -1083,7 +1162,7 @@ def draw_ccdf_plot(datas, datatype, legend, legend_type, filename, log_scale=Tru
 
 if __name__ == "__main__":
     #following_anlysis()
-    folder = '20181022' 
+    folder = '20181031' 
     dirname = 'RetweetNew/'
     start = time()
     #find_echo_chamber(2)
@@ -1093,10 +1172,11 @@ if __name__ == "__main__":
     
     #draw_statistics()
     #draw_echo_chamber_true_false()
-    #propagation_within_echo_chamber()
-    draw_echo_chamber_cascade_chracteristics()
+    propagation_within_echo_chamber()
+    #draw_echo_chamber_cascade_chracteristics()
     #echo_chamber_rumor_spread()
     #echo_chamber_political_cascade_analysis('False')
+    #echo_chamber_user_characteristics()
     #depth_analysis()
 
     #echo_chamber_anlysis('Data/echo_chamber2.json', 'True')

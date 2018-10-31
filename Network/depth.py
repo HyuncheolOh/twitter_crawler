@@ -673,6 +673,9 @@ def time_to_depth_echo_chamber(filename):
     
 
     #draw time to depth, user to depth of cascade for echo chamber users participated or non echo chamer users participated 
+    with open('Data/Figure/5_2_1.json', 'w') as f:
+        json.dump([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth']], f)
+
     draw_time_to_depth_echo_chamber([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth']], ['echo chamber', 'no echo chamber'], 'median minutes', 'time_depth_echo_chamber_line')
     draw_time_to_depth_echo_chamber([echo_chamber_values['user_depth'], non_echo_chamber_values['user_depth']], ['echo chamber', 'no echo chamber'], 'median unique users', 'user_depth_echo_chamber_line')
     draw_time_to_depth_echo_chamber([echo_chamber_values['time_depth'], non_echo_chamber_values['time_depth'], dranked_echo_chamber_values['time_depth']], ['echo chamber', 'no echo chamber', 'ranked echo chamber'], 'median minutes', 'time_depth_echo_chamber_line_ranked')
@@ -930,7 +933,7 @@ def user_to_depth(user_depth, user_depth2, user_depth3):
 
 
 if __name__ == "__main__":
-    foldername = 'Image/20181022/Propagation'
+    foldername = 'Image/20181029/Propagation'
     if not os.path.exists(foldername):
         os.makedirs(foldername)
     #depth_cdf()

@@ -87,6 +87,7 @@ def top_participated_users(users):
 
     sort = sorted(user_participation, key = lambda k : len(user_participation[k]), reverse=True)
 
+    top_100 = []
     top_0_1 = []
     top_1 = []
     for i, item in enumerate(sort):
@@ -98,9 +99,12 @@ def top_participated_users(users):
 
             if i < 2000:
                 top_1.append(item)
+        
+            if i < 100:
+                top_100.append(item)
 
-    with open('top_users.json', 'w') as f:
-        json.dump({'top_0_1':top_0_1, 'top_1': top_1}, f)
+    with open('Data/top_users.json', 'w') as f:
+        json.dump({'top_0_1':top_0_1, 'top_1': top_1, 'top_100' : top_100}, f)
 
 
 def retweet_graph_info(path):
@@ -141,15 +145,17 @@ def retweet_graph_info(path):
             max_breadth = b_size
             max_breadth_user = tweet['origin']
     
-    times = [parser.parse(tid['time']) for tid in tweets.values() if tid['origin'] == max_cascade_user]
-    cascade_period = max(times) - min(times)
+    #times = [parser.parse(tid['time']) for tid in tweets.values() if tid['origin'] == max_cascade_user]
+    #cascade_period = max(times) - min(times)
     #time_diff = (times[i] - times[1]).total_seconds() / 60
     #cascade size (max), cascade num, unique users, max depth, max_breadth, echo chamber formed?, root spreader name , veracity 
-    veracity, title = get_veracity(postid)
-    unique_users = len(claim_unique_user)
-    c_num = len(unique_cascade)
-    print("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s"%(postid,  c_num, max_cascade, screen_name(max_cascade_user),max_depth, screen_name(max_depth_user),max_breadth, screen_name(max_breadth_user), unique_users, veracity,   max(time.values()) - min(time.values()), cascade_period))
-    cwriter.writerow([postid, len(tweets), max_cascade, max_depth, max_breadth, c_num, unique_users, veracity, screen_name(max_cascade_user), screen_name(max_depth_user), screen_name(max_breadth_user), max(time.values()) - min(time.values()), cascade_period])
+    #veracity, title = get_veracity(postid)
+    #unique_users = len(claim_unique_user)
+    #c_num = len(unique_cascade)
+    #print("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s"%(postid,  c_num, max_cascade, screen_name(max_cascade_user),max_depth, screen_name(max_depth_user),max_breadth, 
+    #    screen_name(max_breadth_user), unique_users, veracity,   max(time.values()) - min(time.values()), cascade_period))
+    #cwriter.writerow([postid, len(tweets), max_cascade, max_depth, max_breadth, c_num, unique_users, veracity, screen_name(max_cascade_user), 
+    #    screen_name(max_depth_user), screen_name(max_breadth_user), max(time.values()) - min(time.values()), cascade_period])
 
 
 #echo chamber characteristics 
@@ -419,10 +425,10 @@ def analysis():
     print("Veracity : True, False, Mixture, Mostly True, Mostly False")
     print("At least 100 tweets collected since Mar. 2018")
     print("Number of rumors : %s / %s"%(len(rumors), len(files)))
-    #users, cascade, tweets = tweet_analysis()
-    #print("Unique users : %s"%users)
-    #print("Number of cascades : %s"%cascade)
-    #print("Number of tweets : %s"%tweets)
+    users, cascade, tweets = tweet_analysis()
+    print("Unique users : %s"%users)
+    print("Number of cascades : %s"%cascade)
+    print("Number of tweets : %s"%tweets)
 
     #print("%s True, %s False, %s Mixed rumors exist"%(x1, x2, x3))
     draw_graph()

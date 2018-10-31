@@ -325,8 +325,9 @@ def propagation_parent_to_child():
                 else:
                     if ne_time[tweets[ptid]['depth']].get(ptid, -1) == -1:
                         ne_time[tweets[ptid]['depth']][ptid] = diff
-        
-
+         
+        #if ccc == 5:
+        #    break
    
     #remove child 0 count
     for i in range(1, 20):
@@ -440,7 +441,7 @@ def draw_propagation_time_to_group():
     box.save_image('Image/%s/propagation_time_to_group_r.png'%folder)
 
 if __name__ == "__main__":
-    folder = '20181020'
+    folder = '20181029'
     start = time()
     #draw_propagation_velocity()
     #draw_propagation_time_to_group()

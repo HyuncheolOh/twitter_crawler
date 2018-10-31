@@ -13,21 +13,25 @@ def draw_multiline_pdf(data, xlabel, legends, path):
     ax = fig.add_subplot(1,1,1);
     x = np.arange(-1, 1.1, 0.1)
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    plt.sytle.use('ggplot')
+
     for i in range(len(data)):
         d1_np = np.array(data[i])
         #print(d1_np)
         KDEpdf = gaussian_kde(d1_np)
         ax.plot(x, KDEpdf(x), 'r', label=legends[i], color=colors[i])
 
-    plt.legend(loc=4)
-    ax.set_ylabel('PDF', fontsize=20);
-    ax.set_xlabel(xlabel, fontsize=20);
+    plt.legend(loc=2)
+    ax.set_ylabel('PDF', fontsize=20, color='black');
+    ax.set_xlabel(xlabel, fontsize=20, color='black');
+    ax.grid(True)
     plt.savefig(path, bbox_inches='tight')
-    plt.savefig(path+'.eps', bbox_inches='tight')
+    plt.savefig(path + '.eps', bbox_inches='tight', format='eps', dpi=600)
+    plt.savefig(path + '.pdf', bbox_inches='tight',  dpi=600)
 
 
 def draw_pdf(data, xlabel, legends, path):
-#    plt.style.use("ggplot")
+    plt.style.use("ggplot")
 
     #f = open("Data/homogeneity.json","r")
     #data = json.load(f)
@@ -56,11 +60,13 @@ def draw_pdf(data, xlabel, legends, path):
     ax = fig.add_subplot(1,1,1);
     ax.plot(x,KDEpdf(x),'r',label=legend1,color="blue")
     ax.plot(x,KDEpdf2(x),'r',label=legend2,color="green")
+    ax.grid(True)
     #plt.hist(d1_np,normed=1,color="cyan",alpha=.8)
     #plt.plot(x,norm.pdf(x,mu,stdv),label="parametric distribution",color="red")
-    plt.legend(loc=4)
-    ax.set_ylabel('PDF', fontsize=20);
-    ax.set_xlabel(xlabel, fontsize=20);
+    plt.legend(loc=2, fontsize=12)
+    ax.set_ylabel('PDF', fontsize=20, color='black');
+    ax.set_xlabel(xlabel, fontsize=20, color='black');
 
     plt.savefig(path, bbox_inches='tight')
-    plt.savefig(path+'.eps', bbox_inches='tight')
+    plt.savefig(path + '.eps', bbox_inches='tight', format='eps', dpi=600)
+    plt.savefig(path + '.pdf', bbox_inches='tight',  dpi=600)
