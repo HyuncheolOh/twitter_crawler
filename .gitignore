@@ -15,7 +15,7 @@ Network/RetweetGraph
 Network/Retweet_GraphInfo
 Network/PolarUsers
 Network/Image/*
-
+*.gz
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
