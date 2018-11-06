@@ -9,11 +9,11 @@ from scipy.stats import norm
 
 
 def draw_multiline_pdf(data, xlabel, legends, path):
+    plt.style.use('ggplot')
     fig = plt.figure(figsize=(7,7));
     ax = fig.add_subplot(1,1,1);
     x = np.arange(-1, 1.1, 0.1)
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
-    plt.sytle.use('ggplot')
 
     for i in range(len(data)):
         d1_np = np.array(data[i])

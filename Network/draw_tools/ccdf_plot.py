@@ -13,16 +13,24 @@ class CCDFPlot:
 	self.ax = self.fig.add_subplot(1,1,1);
         self.x_label = 'x';
 	self.y_label = 'y';
+        self.count = 0
+        self.colors = ['#FC4F30', '#008FD5']
+
 
     def set_data(self, data):
        	if CCDFPlot.is_log == True: 
-            self.ax.set_xscale('log')
+            self.ax.set_xscale('symlog')
 
         x_ccdf, y_ccdf = self.get_ccdf(data)
         self.ax.set_yscale('log')
         #ax.step(x_ccdf, y_ccdf, lw=1.5)
-        self.ax.step(x_ccdf, y_ccdf)
+        if self.count == 1:
+            self.ax.step(x_ccdf, y_ccdf, self.colors[self.count],linewidth=2, linestyle='--')
+        else:
+            self.ax.step(x_ccdf, y_ccdf, self.colors[self.count], linewidth=2)
 
+        #self.ax.step(x_ccdf, y_ccdf)
+        self.count += 1
 
     def get_ccdf(self, degree_sequence):
         """
@@ -44,12 +52,21 @@ class CCDFPlot:
         self.ax.set_xlim(min_value, max_value)
         
     def set_legends(self, legends, title=""):
-        plt.legend(legends, title=title, fontsize=9)
+        legend = plt.legend(legends, loc=1,  title=title, fontsize=12, framealpha=1, fancybox=True)
+        legend.get_frame().set_edgecolor('grey')
 
     def set_label(self, x, y):
         self.ax.set_xlabel(x, fontsize=16);
         self.ax.set_ylabel(y, fontsize=16);
 
+    def set_xticks(self, xticks):
+        #self.ax.set_xticklabels(xticks, fontsize=12)
+        plt.xticks(np.arange(len(xticks)), xticks, fontsize=12)
+        #plt.xticks([-1, 0, 1], xticks, fontsize=12)
+
+    def set_ylog(self):
+        self.ax.set_yscale('log')
+ 
     def set_log(self, log):
 	CCDFPlot.is_log = log;
 

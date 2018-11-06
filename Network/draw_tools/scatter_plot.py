@@ -9,11 +9,13 @@ class ScatterPlot:
     def __init__(self, subplot_num=1):
         self.fig_num = 1
         self.is_log = False
-        self.fig = plt.figure(figsize=(5,5))
+        self.fig = plt.figure(figsize=(5,4))
 	self.ax = self.fig.add_subplot(1,1,1);
         self.subplot_x = subplot_num
         self.subplot_y = subplot_num
         self.count = 0
+        self.colors = ['#068587','#FC4F30', '#008FD5']
+        #self.colors = ['#FC4F30', '#008FD5']
 
     def set_data(self, x, y):
         #self.ax = self.fig.add_subplot(self.subplot_x, self.subplot_y, self.fig_num)
@@ -22,7 +24,7 @@ class ScatterPlot:
         #c = ['g' for i in range(5)]
         #for i in range(len(x)):
         #self.ax.scatter(x[i], y[i], c = colors[i], s = 100, marker = markers[i])
-        self.ax.scatter(x, y, c = self.colors[self.count], alpha=0.4)
+        self.ax.scatter(x, y, color = self.colors[self.count], alpha=0.4)
         self.count += 1 
         #self.ax.scatter(x, y)
         #self.ax.scatter(x, y, c = colors, s = 80, marker = markers)
@@ -50,10 +52,13 @@ class ScatterPlot:
 
 
     def set_xticks(self, xticks):
-        plt.xticks(np.arange(len(xticks)), xticks)
+        #plt.xticks(np.arange(len(xticks)), xticks)
+        plt.xticks([1,10,100,1000], xticks)
 
     def set_yticks(self, yticks):
-        plt.yticks(np.arange(len(yticks)), yticks)
+        plt.yticks([1,10,100,1000], yticks)
+
+        #plt.yticks(np.arange(len(yticks)), yticks)
 
     def set_ylim(self, min_v, max_v):
         self.ax.set_ylim(min_v, max_v)

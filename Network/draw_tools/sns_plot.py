@@ -48,6 +48,8 @@ def draw_echo_plot(x, y, x2, y2, filename):
     df1 = pd.DataFrame({'User Polarity':x, 'Content Polarity':y})
     df2 = pd.DataFrame({'User Polarity':x2, 'Content Polarity':y2})
 
+    c1 = 'g'
+    c2 = 'b'
     height = 10
     ratio = 10 
     f = plt.figure(figsize=(height, height))
@@ -68,19 +70,22 @@ def draw_echo_plot(x, y, x2, y2, filename):
     #ax_marg_y.set_xticklabels(['', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0'], fontdict={'fontsize':12})
 
     ax_joint.grid(True)
-
-    g = sns.regplot(x="User Polarity", y="Content Polarity", data = df1, ax=ax_joint, color='g', label='Non Echo Chamber')
-    g = sns.regplot(x="User Polarity", y="Content Polarity", data = df2, ax=ax_joint, color='b', label='Echo Chamber')
-    g.set(ylim=(-0.1,1.1))
-    g.set(xlim=(-0.1,1.1))
+    g = sns.regplot(x="User Polarity", y="Content Polarity", data = df1, ax=ax_joint, color=c1, scatter_kws={'alpha':0.5}, label='Non-echo chamber')
+    g = sns.regplot(x="User Polarity", y="Content Polarity", data = df2, ax=ax_joint, color=c2, scatter_kws={'alpha':0.5}, label='Echo chamber')
+    g.set(ylim=(0,1))
+    g.set(xlim=(0,1))
     ax_joint.legend(loc=2)
-  
+    #ax_marg_y.set_xticks([0,1,2,3,4], [0,1,2,3,4])
+    ax_marg_y.set_xticks([0,1,2,3,4,5,6])
+    ax_marg_y.set_xticklabels([0,1,2,3,4,5,6]) 
+    ax_marg_y.set_xlim(0, 6)
+    ax_marg_x.set_ylim(0, 3.5)
     #f.legend((g1, g2), ('Non Echo Chamber', 'Echo Chamber'))
-    sns.kdeplot(df1['User Polarity'], ax=ax_marg_x, shade=True, color='g', legend=False)
-    sns.kdeplot(df2['User Polarity'], ax=ax_marg_x, shade=True, color='b', legend=False)
+    sns.kdeplot(df1['User Polarity'], ax=ax_marg_x, shade=True, color=c1, legend=False)
+    sns.kdeplot(df2['User Polarity'], ax=ax_marg_x, shade=True, color=c2, legend=False)
     
-    sns.kdeplot(df1['Content Polarity'], ax=ax_marg_y, shade=True, color='g', vertical=True, legend=False)
-    sns.kdeplot(df2['Content Polarity'], ax=ax_marg_y, shade=True, color='b', vertical=True, legend=False)
+    sns.kdeplot(df1['Content Polarity'], ax=ax_marg_y, shade=True, color=c1, vertical=True, legend=False)
+    sns.kdeplot(df2['Content Polarity'], ax=ax_marg_y, shade=True, color=c2, vertical=True, legend=False)
 
     #f = plot.figure
     plt.savefig(filename, bbox_inches='tight')

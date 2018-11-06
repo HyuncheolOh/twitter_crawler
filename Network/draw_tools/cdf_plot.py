@@ -15,6 +15,11 @@ class CDFPlot:
 	self.ax = self.fig.add_subplot(1,1,1);
         self.x_label = 'x';
 	self.y_label = 'y';
+        self.count = 0
+        #self.colors = ['#FC4F30', '#008FD5', '#2B696D']
+        self.colors = ['#b30000', '#2d7cb5']
+        #self.colors = ['b', 'g', 'r']
+
 
     def plot_cdf(self, data, ax, label):
         """
@@ -30,7 +35,11 @@ class CDFPlot:
         #print(sorted_vals)
         p = 1. * np.arange(len(data)) / (len(data) - 1)
         #ax.plot(sorted_vals, p, label=label, linewidth = 2.0)
-        ax.plot(sorted_vals, p, label=label)
+        if self.count == 1:
+            ax.plot(sorted_vals, p, self.colors[self.count], linewidth=2, linestyle='--')
+        else : 
+            ax.plot(sorted_vals, p,  self.colors[self.count], linewidth=2)
+
         
 	if CDFPlot.is_log == True: 
 #	    ax.set_xscale('log')
@@ -38,6 +47,7 @@ class CDFPlot:
       
     def set_data(self, data, label):
 	self.plot_cdf(data, self.ax, label)
+        self.count += 1
 
     def set_subplot_data(self, data, label):
         self.ax = self.fig.add_subplot(self.subplot_x, self.subplot_y, self.fig_num)
@@ -58,15 +68,21 @@ class CDFPlot:
         self.ax.set_title(title, fontsize=20, y=1.02)
 
     def set_legends(self, legends, title=""):
-        plt.legend(legends, loc=2,  title=title, fontsize=12)
+        legend = plt.legend(legends, loc=2,  title=title, fontsize=12, framealpha=1, fancybox=True)
+        legend.get_frame().set_edgecolor('grey')
+    
 
     def set_label(self, x, y):
         self.ax.set_xlabel(x, fontsize=16);
         self.ax.set_ylabel(y, fontsize=16);
 
-    def set_xticks(self, xticks):
-        self.ax.set_xticklabels(xticks, fontsize=12)
-        #plt.xticks(np.arange(len(xticks)), xticks, fontsize=12)
+    def set_xticks(self, xticks, index=None):
+        #self.ax.set_xticklabels(xticks, fontsize=12)
+        #plt.xticks(index, xticks, fontsize=12)
+        if index != None:
+            plt.xticks(index, xticks, fontsize=12)
+        else:
+            plt.xticks(np.arange(len(xticks)), xticks, fontsize=12)
 
     def set_ylog(self):
         #self.ax.set_yscale('symlog')
@@ -79,5 +95,6 @@ class CDFPlot:
         self.ax.set_xlim(minimum, maximum)
 
     def save_image(self, path):
+        plt.minorticks_off()
 	self.fig.savefig(path, bbox_inches='tight')
         self.fig.savefig(path + '.eps', bbox_inches='tight', format='eps', dpi=600)

@@ -167,6 +167,47 @@ def jaccard_distribution():
     cdf.save_image("%s/jaccard_ccdf"%(folder_name))
 
 
+def rank_correlation():
+    print('rank correlation')
+    
+    g = load_graph(graph_name)
+    vprop = g.vertex_properties['vertex']
+    eprop = g.edge_properties['edge']
+    eweight = g.edge_properties['weight']
+
+    pr = pagerank(g)
+    vp, ep = betweenness(g)
+    weighted_degree = {}
+    degree = {}
+    node_num = 0
+    node_list = []
+    for v in g.vertices():
+        weighted_degree[v] = sum([eweight[e] for e in v.out_edges()])
+
+    for i, num in enumerate(g.get_out_degrees(g.get_vertices())):
+        degree[i] = num
+
+        if num > 0:
+            node_num += 1
+            node_list.append(i)
+
+    degree_list = [degree[i] for i in node_list]
+    pagerank_list = [pr[i] for i in node_list]
+    #p_sort = sorted(pr.items(), key=itemgetter(1), reverse=True)
+    p_sort = sorted(pr, reverse=True)
+    b_sort = sorted(vp, reverse=True)
+    d_sort = sorted(degree.items(), key=itemgetter(1), reverse=True)
+    wd_sort = sorted(weighted_degree.items(), key=itemgetter(1), reverse=True)
+
+    print(d_sort[:30])
+    #print(wd_sort[:30])
+
+    #print(pr)
+    #keys1 = [vprop[item[0]] for item in p_sort]
+    #keys2 = [vprop[item[0]] for item in b_sort]
+    #keys3 = [vprop[item[0]] for item in d_sort]
+    #keys4 = [vprop[item[0]] for item in wd_sort]
+
 def cascade_centrality_analysis(g, vprop, eweight):
     print('Compare cascade characteristics of echo chamber users')
     pr = pagerank(g)
@@ -190,6 +231,7 @@ def cascade_centrality_analysis(g, vprop, eweight):
     i = 0
     import math
     for p_v, b_v, c_v in zip(pr, vp, c):
+        print(p_v, b_v, c_v)
         if not math.isnan(p_v):
             p_rank[i] = p_v 
         if not math.isnan(b_v):
@@ -565,7 +607,7 @@ def analyze_echo_chamber_network():
     #print('degree max : %s, min : %s'%(max(in_hist), min(in_hist)))
 
     
-    #cascade_centrality_analysis(g, vprop, eweight)
+    cascade_centrality_analysis(g, vprop, eweight)
     #rumor_centrality_analysis(g, vprop)
     #return 
     v_count = 0
@@ -574,9 +616,9 @@ def analyze_echo_chamber_network():
         v_count += 1
 
     degree = g.get_out_degrees(g.get_vertices())
-    for i in degree:
-        print(degree[i])
-    print(degree) 
+    #for i in degree:
+    #    print(degree[i])
+    #print(degree) 
     #calculate vertex all edge weight sum
     #for v in g.vertices():
     #CDF and CCDF of degree of vertex
@@ -597,7 +639,6 @@ def analyze_echo_chamber_network():
     print('Vertices which have edges : %s'%(np.count_nonzero(g.get_out_degrees(g.get_vertices()))))
     print('Edge Count : %s'%(sum(degree)))
 
-    return
     #degree, weighted_degree rank 
     weighted_degree = []
     for v in g.vertices():
@@ -617,7 +658,8 @@ def analyze_echo_chamber_network():
     cdf.set_data(weighted_degree)
     cdf.save_image("%s/weighted_degree_ccdf"%(folder_name))
 
-    
+   
+
     #weight distribution
     weight_distribution = []
     edges = g.get_edges()
@@ -649,6 +691,8 @@ def analyze_echo_chamber_network():
     cdf.set_data(weight_distribution)
     cdf.save_image("%s/weight_ccdf"%(folder_name))
     
+    with open('Data/Figure/6_1_2.json', 'w') as f:
+        json.dump({'degree' : degree.tolist(), 'weight':weight_distribution, 'weighted_degree':weighted_degree}, f)
 
     clust = local_clustering(g, undirected=True)
     print('local clustering')
@@ -1076,28 +1120,245 @@ def degree_usernum_correlation():
         top_users = top_users['top_1']
         #top_users = top_users['top_100']
 
+    with open('Data/top_retweeted_users', 'r') as f:
+        top_retweeted_users = json.load(f)
+        #top_users = top_users['top_100']
 
+    sorted_retweet_users = sorted(top_retweeted_users.items(), key=itemgetter(1), reverse=True)
+    top_retweeted_users = [item[0] for item in sorted_retweet_users]
+    top_retweeted_count = [item[1] for item in sorted_retweet_users]
+
+    degree = {}
+    for i, num in enumerate(g.get_out_degrees(g.get_vertices())):
+        degree[i] = num
+
+    #sort = sorted(p_rank.items(), key=itemgetter(1), reverse=True)
+    sort = sorted(degree.items(), key=itemgetter(1), reverse=True)
+
+    keys = [vprop[item[0]] for item in sort]
+    degree_list = g.get_out_degrees([item[0] for item in sort])
+    
+    top_user_num = int(len(top_retweeted_users) * 0.01)
+    all_user_num = len(top_retweeted_users)
+    #top_user_num = len(top_users)
+    #all_user_num = top_user_num * 100
+    #print(top_retweeted_count[:top_user_num])
+    #print(top_retweeted_count[len(top_retweeted_count) - top_user_num:])
+    top_users = top_retweeted_users[:top_user_num]
+    top_user_ratio = []
     top_user_count = []
+    rank_list = []
+    """
     for v in g.vertices():
         users = echo_chamber[vertex_keys[str(v)]]    
-        top_user_count.append(item_contain_count(users, top_users))
+        top_user_contain_num = item_contain_count(users, top_users)
         usernum_list.append(len(users))
-    degree_list = g.get_out_degrees(g.get_vertices())
+        top_user_count.append(top_user_contain_num)
+        ratio = top_user_contain_num / (top_user_num * len(users) / all_user_num)
+        top_user_ratio.append(ratio)
 
+        #print(top_user_contain_num, top_user_num, len(users), all_user_num, ratio)
+    """
+    node_count = np.count_nonzero(g.get_out_degrees(g.get_vertices()))
+    print('top all length ', len(degree_list), node_count)
+    one_p = int(node_count * 0.01)
+    ten_p = int(node_count * 0.1) 
+
+    #degree_list = g.get_out_degrees(g.get_vertices())
+
+    echo_rumors = {}
+    echo_cascade = {}
+    all_user_child_num = {}
+    #top_keys = keys[:node_count]
+    top_keys = keys[:ten_p]
+    #top_keys = keys[:one_p]
+    print('top 10% keys ', len(top_keys))
+    for item in top_keys:
+        echo_rumors[item] = {}
+        echo_cascade[item] = {}
+
+    files = os.listdir('RetweetNew')
+    for ccc, postid in enumerate(files):
+        print(ccc, postid)
+        with open('RetweetNew/' + postid, 'r') as f:
+            tweets = json.load(f)
+
+            for tweet in tweets.values():
+                origin = tweet['origin_tweet']
+                user = tweet['user']
+                child = tweet['child']
+                all_user_child_num[user] = all_user_child_num.get(user, [])
+                all_user_child_num[user].append(child)
+                
+                for key in top_keys:
+                    users = echo_chamber[key]
+
+                    if user in users:
+                        echo_rumors[key][postid] = 1
+                        echo_cascade[key][origin] = 1
+                
+#        if ccc == 10:
+#            break
+        #break
+    #with open('Data/Figure/6_3.json', 'r') as f:
+    #    data = json.load(f)
+    #rumor_num = data['rumor']
+    #cascade_num = data['cascade_num']
+    user_median = {}
+    user_mean = {}
+    for user in all_user_child_num:
+        user_median[user] = np.median(all_user_child_num[user])
+
+    for user in all_user_child_num:
+        user_mean[user] = np.mean(all_user_child_num[user])
+    
+    all_rumors = []
+    all_cascades = []
+
+    #user cumulative graph
+    #user median cumulative graph
+    all_users = []
+    all_retweet_num = []
+    all_retweet_median_num = []
+    all_retweet_mean_num = []
+    for ccc, key in enumerate(top_keys):
+        echo_users = echo_chamber[key]
+        all_users.extend(echo_users)
+        #print(echo_users)
+        #print(all_users)
+        #print(set(all_users))
+        all_retweet_num.append(sum([sum(all_user_child_num[user]) for user in set(all_users)]))
+        all_retweet_median_num.append(sum([user_median[user] for user in set(all_users)]))
+        all_retweet_mean_num.append(sum([user_mean[user] for user in set(all_users)]))
+        
+        #if ccc == 10:
+        #    break
+    print(all_retweet_num)
+    print(all_retweet_median_num)
+    print(all_retweet_mean_num)
+    
+    
+    x_ticks = range(0, len(all_retweet_num))
+    line = LinePlot()
+    line.set_ylog()
+    line.set_label('Rank', 'Number of Retweets')
+    yticks = [all_retweet_num[i] for i in x_ticks]
+    line.set_plot_data(yticks, x_ticks)
+    line.save_image('Image/Figure/6_3_4.png')
+
+    x_ticks = range(0, len(all_retweet_num))
+    line = LinePlot()
+    line.set_ylog()
+    line.set_label('Rank', 'Number of Median Retweets')
+    yticks = [all_retweet_median_num[i] for i in x_ticks]
+    line.set_plot_data(yticks, x_ticks)
+    line.save_image('Image/Figure/6_3_5.png')
+
+    x_ticks = range(0, len(all_retweet_num))
+    line = LinePlot()
+    line.set_ylog()
+    line.set_label('Rank', 'Number of Mean Retweets')
+    yticks = [all_retweet_mean_num[i] for i in x_ticks]
+    line.set_plot_data(yticks, x_ticks)
+    line.save_image('Image/Figure/6_3_6.png')
+
+
+    
+    rumor_num = []
+    cascade_num = []
+    for key in top_keys:
+        unique_rumors = echo_rumors[key].keys()
+        unique_cascade = echo_cascade[key].keys()
+        all_rumors.extend(unique_rumors)
+        all_cascades.extend(unique_cascade)
+        rumor_num.append(len(set(all_rumors)))
+        cascade_num.append(len(set(all_cascades)))
+    
+    with open('Data/Figure/6_3.json', 'w') as f:
+        json.dump({'rumor' : rumor_num, 'cascade_num' : cascade_num, 'all_user' : all_retweet_num, 'all_median' : all_retweet_median_num, 'all_mean': all_retweet_mean_num}, f)
+
+    #with open('Data/Figure/6_3_1.json', 'w') as f:
+    #    json.dump({'rumor' : rumor_num, 'cascade_num' : cascade_num, 'user':all_user_child_num}, f)
+
+    #print(rumor_num)
+    #print(cascade_num)
+    #print(x_ticks)
+    #print(rumor_num)
+    x_ticks = range(0, len(rumor_num))
+    line = LinePlot()
+    line.set_ylog()
+    line.set_label('Rank', 'Number of Rumors')
+    yticks = [rumor_num[i] for i in x_ticks]
+    line.set_plot_data(yticks, x_ticks)
+    #line.set_yticks(['0', '1 m', '5 m', '1 h', '1 day', '10 day'], index=[0,1,5,60, 24*60, 24*10*60])
+    line.save_image('Image/Figure/6_3_1.png')
+
+    x_ticks = range(0, len(rumor_num))
+    line = LinePlot()
+    line.set_ylog()
+    line.set_label('Rank', 'Number of Cascades')
+    yticks = [cascade_num[i] for i in x_ticks]
+    line.set_plot_data(yticks, x_ticks)
+    #line.set_yticks(['0', '1 m', '5 m', '1 h', '1 day', '10 day'], index=[0,1,5,60, 24*60, 24*10*60])
+    line.save_image('Image/Figure/6_3_2.png')
+
+    return
+
+
+
+    for i, v in enumerate(keys):
+        if degree_list[i] < 1:
+            continue
+        rank_list.append(i+1)
+        users = echo_chamber[v]
+        top_user_contain_num = item_contain_count(users, top_users)
+        usernum_list.append(len(users))
+        top_user_count.append(top_user_contain_num)
+        ratio = top_user_contain_num / (top_user_num * len(users) / all_user_num)
+        top_user_ratio.append(ratio)
+
+    
     userlist = []
     degreelist = []
     topuserlist = []
-    for user, degree, top in zip(usernum_list, degree_list, top_user_count):
+    topuserratio = []
+    for user, degree, top, topratio in zip(usernum_list, degree_list, top_user_count, top_user_ratio):
         if degree < 1:
             continue
         userlist.append(user)
         degreelist.append(degree)
         topuserlist.append(top)
+        topuserratio.append(topratio)
+        #if degree == 1:
+        #    print(user, top, degree)
 
+    print(ten_p)
+    print(rank_list[:ten_p])
+    print(userlist[:ten_p])
+    print(topuserratio[:ten_p])
     scatter = ScatterPlot()
     scatter.set_log(True)
     scatter.set_ylog()
-    scatter.set_ylim(0, max(degreelist))
+    scatter.set_ylim(0, 10000)
+    scatter.set_xlim(1, 200)
+    scatter.set_label('Rank', 'Number of Users')
+    scatter.set_data(rank_list[:ten_p], userlist[:ten_p])
+    scatter.save_image('%s/rank_member_correlation%s.png'%(folder_name, weight_filter))
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    #scatter.set_ylog()
+    #scatter.set_ylim(0, 120)
+    scatter.set_xlim(1, 10000)
+    scatter.set_label('Number of Users', 'Top User Ratio')
+    scatter.set_data(userlist[:ten_p], topuserratio[:ten_p])
+    scatter.save_image('%s/member_ratio_correlation%s.png'%(folder_name, weight_filter))
+
+    
+    scatter = ScatterPlot()
+    scatter.set_log(True)
+    scatter.set_ylog()
+    scatter.set_ylim(0, 1000)
     scatter.set_xlim(0, 10000)
     scatter.set_label('Number of Users', 'Degree')
     scatter.set_data(userlist, degreelist)
@@ -1105,11 +1366,21 @@ def degree_usernum_correlation():
 
     scatter = ScatterPlot()
     scatter.set_log(True)
+    #scatter.set_ylog()
+    scatter.set_ylim(0, 100)
+    scatter.set_xlim(0, 1000)
+    scatter.set_label('Degree', 'Top Spreader Ratio')
+    scatter.set_data(degreelist, userlist)
+    scatter.save_image('%s/degree_top_ratio%s.png'%(folder_name, weight_filter))
+
+
+    scatter = ScatterPlot()
+    scatter.set_log(True)
     scatter.set_ylog()
     scatter.set_ylim(0, 10000)
-    scatter.set_xlim(0, max(degreelist))
+    scatter.set_xlim(0, 1000)
     scatter.set_label('Degree', 'Number of Users')
-    scatter.set_data(userlist, degreelist)
+    scatter.set_data(degreelist, userlist)
     scatter.save_image('%s/degree_usernum_correlation%s.png'%(folder_name, weight_filter))
 
     scatter = ScatterPlot()
@@ -1132,7 +1403,7 @@ def degree_usernum_correlation():
     scatter.set_data(degreelist, topuserlist)
     scatter.save_image('%s/degree_topuser_correlation%s.png'%(folder_name, weight_filter))
 
-def rank_correlation():
+def rank_analysis():
     tweet_cache = {}
     with open('Data/echo_chamber2.json', 'r') as f:
         echo_chamber = json.load(f)
@@ -1148,6 +1419,7 @@ def rank_correlation():
     with open('Data/network_key.json', 'r') as f:
         vertex_keys = json.load(f)
 
+    #top rumor spreader
     with open('Data/top_users.json', 'r') as f:
         top_users = json.load(f)
         top_users = top_users['top_1']
@@ -1173,12 +1445,12 @@ def rank_correlation():
             p_rank[i] = p_v 
         i += 1
 
-    sort = sorted(p_rank.items(), key=itemgetter(1), reverse=True)
-    #sort = sorted(degree.items(), key=itemgetter(1), reverse=True)
+    #sort = sorted(p_rank.items(), key=itemgetter(1), reverse=True)
+    sort = sorted(degree.items(), key=itemgetter(1), reverse=True)
 
     keys = [vprop[item[0]] for item in sort]
     degree_list = g.get_out_degrees([item[0] for item in sort])
-    print(degree_list)
+
     top_user_count = []
     usernum_list = []
     rank_list = []
@@ -1244,7 +1516,104 @@ def rank_correlation():
     scatter.set_data(ranklist, topuserlist)
     scatter.save_image('%s/rank_topuser_correlation%s.png'%(folder_name, weight_filter))
 
- 
+
+    with open('Data/Figure/6_2_1.json', 'w') as f:
+        json.dump({'ranklist':ranklist, 'topuserlist':topuserlist}, f)
+
+    node_count = np.count_nonzero(g.get_out_degrees(g.get_vertices()))
+    print('top all length ', len(degree_list), node_count)
+    one_p = int(node_count * 0.01)
+    ten_p = int(node_count * 0.1) 
+    #degree_list = g.get_out_degrees([item[0] for item in sort])
+    
+    #top echo chamber list. union unique users 
+    one_p_echo = keys[:one_p]
+    ten_p_echo = keys[:ten_p]
+    print(len(one_p_echo), len(ten_p_echo))
+
+    top_one_users = {}
+    top_ten_users = {}
+    for k in one_p_echo:
+        users = echo_chamber[k]
+        for user in users:
+            top_one_users[user] = 1
+
+    for k in ten_p_echo:
+        users = echo_chamber[k]
+        for user in users:
+            top_ten_users[user] = 1
+
+    print('users ', len(top_one_users), len(top_ten_users))
+    top_one_users = top_one_users.keys()
+    top_ten_users = top_ten_users.keys()
+
+    #number of rumor participated
+    all_rumor = {}
+    all_cascade = {}
+    top_one_rumor = {}
+    top_ten_rumor = {}
+    top_one_cascade = {}
+    top_ten_cascade = {}
+    top_one_size = {}
+    top_ten_size = {}
+    all_size = {}
+    files = os.listdir('RetweetNew')
+    user_all_num = {}
+    user_top_num = {}
+    for postid in files:
+        with open('RetweetNew/' + postid, 'r') as f:
+            tweets = json.load(f)
+
+            for tweet in tweets.values():
+                user = tweet['user']
+                origin = tweet['origin_tweet']
+                size = tweet['cascade']
+                
+                all_rumor[postid] = 1
+                all_cascade[origin] = 1
+                all_size[origin] = size
+                if user in top_one_users:
+                    top_one_rumor[postid] = 1
+                    top_one_cascade[origin] = 1
+                    top_one_size[origin] = size
+
+                if user in top_ten_users:
+                    top_ten_rumor[postid] = 1
+                    top_ten_cascade[origin] = 1
+                    top_ten_size[origin] = size
+                
+                user_all_num[user] = user_all_num.get(user, 0) + 1 
+                if tweet['depth'] == 1:
+                    user_top_num[user] = user_top_num.get(user, 0) +  1
+
+    print('top 1%, top 10%, all')
+    print('rumor : %s , %s, %s'%(len(top_one_rumor), len(top_ten_rumor), len(all_rumor)))
+    print('cascade : %s, %s, %s'%(len(top_one_cascade), len(top_ten_cascade), len(all_cascade)))
+
+    with open('Data/Figure/6_2_4.json', 'w') as f:
+        json.dump({'top_one' : top_one_cascade.keys(), 'top_ten' : top_ten_cascade}, f)
+
+
+
+    draw_cdf_graph([top_one_size.values(), top_ten_size.values(), all_size.values()], 'Cascade Size', ['Top 1%', 'Top 10%', 'All'], '', 'upper_class_cascade_size')
+
+    #top spreader iniating correlation
+    #top_users # top spreader 
+    top_init_ratio = []
+    for user in top_users:
+        top_init_ratio.append(user_top_num.get(user, 0) / user_all_num[user])
+
+    
+    scatter = ScatterPlot()
+    #scatter.set_log(True)
+    #scatter.set_ylog()
+    scatter.set_ylim(0, 1)
+    print(range(len(top_users)+1))
+    scatter.set_xlim(1, len(top_users) + 1)
+    scatter.set_label('Rank', 'Rumor Initiating Ratio')
+    scatter.set_data(range(1,len(top_users)+1), top_init_ratio)
+    scatter.save_image('%s/top_init_ratio%s.png'%(folder_name, weight_filter))
+
 
 
 #initating ratio of echo chamber 
@@ -1321,7 +1690,7 @@ def initiating_ratio():
             if tweet_cache.get(pid, None) == None:
                 f = open('RetweetNew/' + pid, 'r')
                 tweets = json.load(f)
-                f.close
+                f.close()
                 tweet_cache[pid] = tweets
             else:
                 tweets = tweet_cache.get(pid)
@@ -1423,9 +1792,47 @@ def initiating_ratio():
     print('bottom gini : %s'%my_util.gini2(bottom_values))
     
 
+def draw_graph():
+    #g = load_graph(graph_name)
+    #vprop = g.vertex_properties['vertex']
+    #eprop = g.edge_properties['edge']
+    #eweight = g.edge_properties['weight']
+
+    #graph_draw(g, output='graph.pdf')
+    colors = [(244,243,248), (244,165,130), (33,102,172)]
+    #colors = [(253,174,97),(171,217,233),(217,239,139),(215,48,39),(69,117,180),(26,152,80)]
+    colors = [tuple(map(lambda x : x/255, color)) for color in colors]
+
+    from random import randint
+    g = Graph(directed=False)
+    vsize = g.new_vertex_property("int")
+    vcolor = g.new_vertex_property("vector<double>")
+    pos = g.new_vertex_property("vector<double>")
+    nodenum =100
+    edgenum = 200
+    g.add_vertex(nodenum)
+    for s,t in zip(np.random.choice(nodenum,edgenum), np.random.choice(nodenum,edgenum)):
+        g.add_edge(g.vertex(s), g.vertex(t))
+
+    for i in range(nodenum):
+        if i < 2:
+            vsize[i] = 50 
+            vcolor[i] = colors[1]
+        else:
+            vsize[i] = 4
+            vcolor[i] = colors[2]
+
+    s = sfdp_layout(g)
+    graph_draw(g, s, 
+            vertex_size=vsize,
+            vertex_fill_color=vcolor,
+            output='graph.png')
+
+
+
 
 if __name__ == "__main__":
-    folder_name = 'Image/20181029'
+    folder_name = 'Image/20181104'
     graph_name = 'Data/graph%s.xml.gz'
     start = time()
     #find_echo_chamber_network()
@@ -1434,13 +1841,15 @@ if __name__ == "__main__":
         weight_filter = sys.argv[1]
         graph_name = graph_name%weight_filter
         print('load ', graph_name)
-    analyze_echo_chamber_network()
+    #analyze_echo_chamber_network()
     #network_analysis()
     #rank_depth_distribution()
    # polarity_weight_correlation()
-    #degree_usernum_correlation()
+    degree_usernum_correlation()
     #rank_correlation()
+    #rank_analysis()
     #initiating_ratio()
+    #draw_graph()
     end = time()
     print('%s takes'%(end - start))
 

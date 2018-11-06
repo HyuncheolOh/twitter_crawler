@@ -7,6 +7,7 @@ from operator import itemgetter
 from draw_tools.cdf_plot import CDFPlot
 from draw_tools.box_plot import BoxPlot
 import draw_tools.sns_plot as snsplot
+from scipy import stats
 
 def get_polarity(userid):
     with open('Data/polarization.json', 'r') as f:
@@ -207,36 +208,35 @@ def political_alignment():
     files = os.listdir(dir_name)
     timeline_dir = '../Timeline/'
 
+    user_content_polarity = {} #user - polarity 
+    postid_content_polarity = {}
+    all_echo_user_score = []; all_non_echo_user_score = []
+    all_echo_source_score = []; all_non_echo_source_score = []       
+
     for postid in files:
         user_score = []; echo_user_score = []; non_echo_user_score = []
         source_score = []; echo_source_score = []; non_echo_source_score = []       
 
-        """
-        if util.is_politics(postid):
-            path = '%s/Politic/%s'%(folder, postid)
-            path2 = '%s/Politic/echo_%s'%(folder, postid)
-        elif util.is_non_politics(postid):
-            path = '%s/NonPolitic/%s'%(folder, postid)
-            path2 = '%s/NonPolitic/echo_%s'%(folder, postid)
-        else:
-            path = '%s/Other/%s'%(folder, postid)
-            path2 = '%s/Other/echo_%s'%(folder, postid)
-
-        if os.path.exists(path+'.png'):
-            continue
-        """
         path = '%s/selective_exposure_%s'%(folder, postid)
         if postid != '142256':
             continue
-        print(postid)
+        postid_content_polarity[postid] = {}
         with open(dir_name + postid, 'r') as f:
             tweets = json.load(f)
 
+        #if len(tweets) > 3000 or len(tweets) < 70:
+        #    continue
+        print(postid, len(tweets))
         users = list(set([tweet['user'] for tweet in tweets.values()]))
         #collect echo chamber users' source diversity
         err = 0; nerr = 0
         count_zero_users = 0
         for user in users:
+
+            if user_content_polarity.get(user, None) != None:
+                postid_content_polarity[postid][user] = user_content_polarity.get(user)
+                continue
+
             try:
                 with open(timeline_dir + user, 'r') as f:
                     user_tweets = json.load(f)
@@ -271,13 +271,21 @@ def political_alignment():
                 if user in echo_chamber_users[postid]:
                     echo_user_score.append(user_politic_score)
                     echo_source_score.append(p_mean)
+                    all_echo_user_score.append(user_politic_score)
+                    all_echo_source_score.append(p_mean)
+
                 else:
                     non_echo_user_score.append(user_politic_score)
                     non_echo_source_score.append(p_mean)
+                    all_non_echo_user_score.append(user_politic_score)
+                    all_non_echo_source_score.append(p_mean)
 
+
+            user_content_polarity[user] = p_mean            
+            postid_content_polarity[postid][user] = p_mean
             #calculate until 1000 users cause it takes too much time 
-            if len(user_score) > 1000:
-                break
+            #if len(user_score) > 1500:
+            #    break
 
         print('count zero users : %s'%count_zero_users)
         print('save selective exposure file')
@@ -285,30 +293,47 @@ def political_alignment():
         if not os.path.exists(filefolder):
            os.makedirs(filefolder)
 
-        datapath = filefolder + postid
+    
+        print('echo', stats.pearsonr(echo_user_score, echo_source_score)[0])
+        print('necho', stats.pearsonr(non_echo_user_score, non_echo_source_score)[0])
+    #    break
+        datapath = filefolder + postid + '_polarity'
         with open(datapath, 'w') as f :
             json.dump({'necho_user' : non_echo_user_score, 'necho_source' : non_echo_source_score, 'echo_user' : echo_user_score, 'echo_source' : echo_source_score}, f)
 
         snsplot.draw_echo_plot(non_echo_user_score, non_echo_source_score, echo_user_score, echo_source_score, path)
+    
+        with open(filefolder + postid, 'w') as f:
+            json.dump(postid_content_polarity[postid], f)
+       
+    print('echo', stats.pearsonr(all_echo_user_score, all_echo_source_score))
+    print('necho', stats.pearsonr(all_non_echo_user_score, all_non_echo_source_score))
+
+    with open('Data/user_content_polarity.json', 'w') as f:
+        json.dump(user_content_polarity, f)
+    with open('Data/user_content_polarity_postid.json', 'w') as f:
+        json.dump(postid_content_polarity, f)
 
 #draw graph from saved datafile 
 def draw_political_alignment():
     
     filefolder = 'Data/SelectiveExposure/'
     postid = '142256'
+    #postid = '142264'
     path = folder  + '/' + postid
-    datapath = filefolder + postid
+    datapath = filefolder + postid + '_polarity'
     
     print(datapath)
     with open(datapath, 'r') as f : 
         dataset = json.load(f)
     
-
+    print(dataset.keys())
     non_echo_user_score = dataset['necho_user']
     non_echo_source_score = dataset['necho_source']
     echo_user_score = dataset['echo_user']
     echo_source_score = dataset['echo_source']
 
+    print(path)
     snsplot.draw_echo_plot(non_echo_user_score, non_echo_source_score, echo_user_score, echo_source_score, path)
 
 
@@ -373,11 +398,62 @@ def source_diversity_rank_comparison(filename):
         path = '%s/SourcePolarity/%s'%(folder, postid)
         if not os.path.exists('%s/SourcePolarity'%folder):
             os.makedirs('%s/SourcePolarity'%folder)
-        
         snsplot.draw_plot(user_score, source_score, path)
 
+def political_alignment_pearson():
+    with open('Data/user_content_polarity.json', 'r') as f:
+        content_polarity = json.load(f)
+
+    echo_chamber_users = e_util.get_echo_chamber_users('Data/echo_chamber2.json')
+
+    files = os.listdir('RetweetNew')
+    e_user = {}
+    ne_user = {}
+    e_source = {}
+    ne_source = {}
+    Bot = bot.load_bot()
+    for ccc, postid in enumerate(files):
+        with open('RetweetNew/' + postid, 'r') as f:
+            tweets = json.load(f)
+        print(ccc, postid, len(tweets))
+        echo_users = echo_chamber_users[postid]
+        for tweet in tweets.values():
+            user = tweet['user']
+
+            
+            if bot.check_bot(Bot, user) == 1:
+                continue
+            
+            if e_user.get(user, None) != None or ne_user.get(user, None) != None:
+                continue
+
+            user_politic_score = round(get_polarity(user),4)
+            content_politic_score = content_polarity.get(user, None)
+
+            if user_politic_score != None and content_politic_score != None:
+
+                if user in echo_users:
+                    e_user[user] = user_politic_score
+                    e_source[user] = content_politic_score
+                else:
+                    ne_user[user] = user_politic_score
+                    ne_source[user] = content_politic_score
+    
+        #if ccc == 10:
+        #    break
+    #    break
+    e_keys = e_user.keys()
+    ne_keys = ne_user.keys()
+    #print('echo', stats.pearsonr(e_user.values(), e_source.values()))
+    #print('necho', stats.pearsonr(ne_user.values(), ne_source.values()))
+    print('echo', stats.pearsonr([e_user[key] for key in e_keys], [e_source[key] for key in e_keys]))
+    print('necho', stats.pearsonr([ne_user[key] for key in ne_keys], [ne_source[key] for key in ne_keys]))
+
+    with open('Data/user_polarity_content_polarity.json', 'w') as f:
+        json.dump({'e_user':e_user, 'ne_user' : ne_user, 'e_source' : e_source, 'ne_source' : ne_source},f)
+
 if __name__ == "__main__":
-    folder = 'Image/20181029'
+    folder = 'Image/20181105'
     start = time()
     dir_name = 'RetweetNew/'
     #echo_chamber_diversity('Data/echo_chamber2.json')
@@ -385,6 +461,7 @@ if __name__ == "__main__":
     filename = 'Data/echo_chamber2.json'
     #echo_chamber_users = e_util.get_echo_chamber_users(filename)
     #political_alignment()
+    #political_alignment_pearson()
     draw_political_alignment()
     #source_diversity_rank_comparison('Data/ranked_weight2_echo_chamber.json')
     end = time()

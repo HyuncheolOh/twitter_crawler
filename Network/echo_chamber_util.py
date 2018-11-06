@@ -9,6 +9,7 @@ def get_echo_chamber_users(file_name):
         if os.path.exists('Data/echo_chamber_users2.json'):
             with open('Data/echo_chamber_users2.json', 'r') as f:
                 echo_chamber_users = json.load(f)
+            print('echo chamber size %s'%len(echo_chamber_users))
             return echo_chamber_users
 
     with open(file_name) as f:

@@ -401,11 +401,14 @@ def mean_edge_homogeneity(filename):
             if tweet['cascade'] == 1:
                 continue
 
-            if tweet['parent'] != tweet['tweet']:
-                parent_child[tweet['parent']] = parent_child.get(tweet['parent'], [])
-                parent_child[tweet['parent']].append(tweet['user'])
+            if tweet['parent'] != tweet['user']:
+                parent_child[postid][tweet['parent']] = parent_child[postid].get(tweet['parent'], [])
+                parent_child[postid][tweet['parent']].append(tweet['user'])
 
     for postid in echo_chamber_users.keys():
+    #############
+    #files = os.listdir('RetweetNew') #for all cascade
+    #for postid in files:
         if retweet_cache.get(postid, None) == None:
             with open(dir_name + '%s'%postid, 'r') as f:
                 tweets = retweet_cache[postid]
@@ -414,11 +417,11 @@ def mean_edge_homogeneity(filename):
             tweets = retweet_cache[postid]
         
         for tweet in tweets.values():
-            if parent_child.get(tweet['user'], None) != None:
+            if parent_child[postid].get(tweet['user'], None) != None:
                 
                 #convert user and children's political score 
                 p_score = get_polarity(tweet['user'])
-                c_scores =  [get_polarity(c_user) for c_user in parent_child[tweet['user']]]
+                c_scores =  [get_polarity(c_user) for c_user in parent_child[postid][tweet['user']]]
 
                 c_scores = list(filter(lambda x : x != -999, c_scores))
                 if p_score == -999 or len(c_scores) == 0:
@@ -432,12 +435,128 @@ def mean_edge_homogeneity(filename):
                     e_homogeneity.append(mean_edge_homogeneity)
                 else:
                     ne_homogeneity.append(mean_edge_homogeneity)
+    #with open('Data/Figure/4_2_1.json', 'w') as f:
+    #    json.dump({'e': e_homogeneity, 'ne': ne_homogeneity}, f)
+    #pdf.draw_pdf({'e': e_homogeneity, 'ne': ne_homogeneity}, '', ['Echo chamber' , 'Non-echo chamber'], 'Image/%s/mean_edge_homogeneity.png'%foldername)
+    pdf.draw_pdf({'e': e_homogeneity, 'ne': ne_homogeneity}, '', ['Echo chamber' , 'Non-echo chamber'], 'Image/%s/mean_edge_homogeneity.png'%foldername)
+    draw_cdf_plot([e_homogeneity, ne_homogeneity], '', ['Echo chamber', 'Non-echo chamber'], '', 'mean_edge_homogeneity')
+    return e_homogeneity
+
+
+#mean edge homogeneity 
+#mean of a node and its all children
+#eco - eco / non-echo non-echo
+def mean_edge_homogeneity2(filename):
+    #compare with echo chamber node's edge homogeneity
+    echo_chamber_users = {}
+    e_homogeneity = []
+    ne_homogeneity = []
+    retweet_cache = {}
+    echo_chamber_users = e_util.get_echo_chamber_users(filename)
+    
+
+    parent_child = {}
+    files = os.listdir('RetweetNew') #for all cascade
+    for postid in files:
+        parent_child[postid] = {}
+    #for postid in echo_chamber_users.keys():
+        if retweet_cache.get(postid, None) == None:
+            with open(dir_name + '%s'%postid, 'r') as f:
+                tweets = json.load(f)
+                retweet_cache[postid] = tweets
+        else:
+            tweets = retweet_cache[postid]
+
+        echo_users = echo_chamber_users[postid]
+        #parent_child[postid] = {} #parent-children
+        #make parent - children map 
+        for tweet in tweets.values():
+            #echo chamber user's edge homogeneity
+            if tweet['cascade'] == 1:
+                continue
+
+            if tweet['parent'] != tweet['user']:
+                #if parent is echo chamber then add only echo chamber users
+                parent_child[postid][tweet['parent']] = parent_child[postid].get(tweet['parent'], [])
+                if tweet['parent'] in echo_users:
+                    #print(tweet['parent'])
+                    if tweet['user'] in echo_users:
+                        parent_child[postid][tweet['parent']].append(tweet['user'])
+                else:
+                    if tweet['user'] not in echo_users:
+                        parent_child[postid][tweet['parent']].append(tweet['user'])
+
+    #for postid in echo_chamber_users.keys():
+    #############
+    files = os.listdir('RetweetNew') #for all cascade
+    for postid in files:
+        #print(postid)
+        if retweet_cache.get(postid, None) == None:
+            with open(dir_name + '%s'%postid, 'r') as f:
+                tweets = retweet_cache[postid]
+                retweet_cache[postid] = tweets
+        else:
+            tweets = retweet_cache[postid]
+        
+        echo_users = echo_chamber_users[postid]
+        
+        #print([len(item) for item in parent_child.values()])
+        #print(len(parent_child.keys()))
+        #print(len(tweets))
+
+        for tweet in tweets.values():
+            if parent_child[postid].get(tweet['user'], None) != None:
+                
+                #check parent and childen are echo chamber group or non-echo chamber group
+                parent = tweet['user']
+                children = parent_child[postid][parent]
+                
+                #check echo only has echo users 
+                """
+                if parent in echo_users:
+                    is_echo = True
+                else:
+                    is_echo = False
+                child_count = 0
+              
+                #print('is echo', is_echo)
+                for child in children:
+                    if is_echo:
+                        if child in echo_users:
+                            child_count += 1
+                    else:
+                        if child not in echo_users:
+                            child_count += 1
+
+                #print(is_echo, len(children), child_count)
+                #print(parent, children)
+                """
+                #convert user and children's political score 
+                p_score = get_polarity(tweet['user'])
+                c_scores =  [get_polarity(c_user) for c_user in parent_child[postid][tweet['user']]]
+
+                c_scores = list(filter(lambda x : x != -999, c_scores))
+                if p_score == -999 or len(c_scores) == 0:
+                    continue
+
+                multiple = list(map(lambda x: x * p_score , c_scores))
+                mean_edge_homogeneity = np.mean(multiple)
+                #print('mean', np.mean(multiple))
+
+                if tweet['user'] in echo_users:
+                    e_homogeneity.append(mean_edge_homogeneity)
+                else:
+                    ne_homogeneity.append(mean_edge_homogeneity)
+        #break
     with open('Data/Figure/4_2_1.json', 'w') as f:
         json.dump({'e': e_homogeneity, 'ne': ne_homogeneity}, f)
-
-
-    pdf.draw_pdf({'e': e_homogeneity, 'ne': ne_homogeneity}, 'Mean Edge Homogeneity', ['Echo Chambers' , 'Non Echo Chambers'], 'Image/%s/mean_edge_homogeneity.png'%foldername)
+    #pdf.draw_pdf({'e': e_homogeneity, 'ne': ne_homogeneity}, '', ['Echo chamber' , 'Non-echo chamber'], 'Image/%s/echo_mean_edge_homogeneity.png'%foldername)
+    
+    draw_cdf_plot([e_homogeneity, ne_homogeneity], '', ['Echo chamber', 'Non-echo chamber'], '', 'echo_mean_edge_homogeneity')
     return e_homogeneity
+
+
+
 
 
 
@@ -447,6 +566,7 @@ def draw_cdf_plot(datas, datatype, legend, legend_type, filename, log_scale=True
     cdf.set_log(log_scale)
     for i in range(len(datas)):
         cdf.set_data(datas[i], legend[i])
+    cdf.set_xticks([-1, 0, 1],index = [-1, 0, 1])
     if len(legend) > 1:
         cdf.set_legends(legend, legend_type)
     cdf.save_image('Image/%s/%s.png'%(foldername, filename))
@@ -574,21 +694,28 @@ def echo_chamber_similarity_ranked():
     #print('save as data file')
     #with open('Data/political_similarity_ranked.json'):
     #    json.dump({'rank2' : similarities[0], 'rank5' : similarities[1], 'lowrank2' : similarities[2], 'lowrank5' : similarities[3]})
+    print('saving data')
     data = [similarities[i] for i in range(len(files))]
     with open('Data/Figure/6_2_2.json', 'w') as f:
         json.dump(data, f)
-    print('extracting pdf png files')
+    #print('extracting pdf png files')
     #compare ranked echo chambers based on weight filtering 
-    pdf.draw_multiline_pdf(data, 'Homogeneity', ['Upper Class', 'Lower Class'], 'Image/%s/echo_chamber_political_diversity_rank_pdf5.png'%foldername)
+    #pdf.draw_multiline_pdf(data, 'Homogeneity', ['Upper Class', 'Lower Class'], 'Image/%s/echo_chamber_political_diversity_rank_pdf5.png'%foldername)
     print('extracting cdf png files')
     #compare ranked echo chambers based on weight filtering 
-    #draw_cdf_plot([similarities[i] for i in range(len(files))], 'Homogeneity', ['Upper Class', 'Lower Class'], '', 'echo_chamber_political_diversity_rank_cdf5')
+    draw_cdf_plot(data, '', ['Upper-class', 'Lower-class'], '', 'echo_chamber_political_diversity_rank_cdf5')
 
 
 def mean_edge_homogeneity_comparison():
     #files = ['Data/echo_chamber2.json', 'Data/ranked_weight2_echo_chamber.json', 'Data/ranked_weight5_echo_chamber.json', 'Data/lowranked_weight2_echo_chamber.json', 'Data/lowranked_weight5_echo_chamber.json']
     files = ['Data/ranked_weight5_echo_chamber.json', 'Data/lowranked_weight5_echo_chamber.json']
-    pdf.draw_multiline_pdf([mean_edge_homogeneity(ranked_f) for ranked_f in files], 'Mean Edge Homogeneity', ['Upper Class', 'Lower Class'], 'Image/%s/echo_chamber_mean_edge_homogeneity_rank_pdf5.png'%foldername)
+    mean_edge_homogeneity_list = [mean_edge_homogeneity(ranked_f) for ranked_f in files]
+    
+    with open('Data/Figure/6_2_2_2.json', 'w') as f:
+        json.dump(mean_edge_homogeneity_list, f)
+
+    pdf.draw_multiline_pdf(mean_edge_homogeneity_list, 'Mean Edge Homogeneity', ['Upper Class', 'Lower Class'], 'Image/%s/echo_chamber_mean_edge_homogeneity_rank_pdf5.png'%foldername)
+
 
     #files = ['Data/ranked_weight2_echo_chamber.json', 'Data/lowranked_weight2_echo_chamber.json']
     #pdf.draw_multiline_pdf([mean_edge_homogeneity(ranked_f) for ranked_f in files], 'Mean Edge Homogeneity', ['Upper Class', 'Lower Class'], 'Image/%s/echo_chamber_mean_edge_homogeneity_rank_pdf2.png'%foldername)
@@ -700,15 +827,16 @@ def echo_chamber_group_homogeneity_size():
 
 if __name__ == "__main__":
     start = time()
-    foldername = '20181029'
+    foldername = '20181105'
     dir_name = 'RetweetNew/'
     #echo_chamber_diversity()
     #polarity_diversity()
     #edge_homogeneity()
     #mean_edge_homogeneity('Data/echo_chamber2.json')
+    mean_edge_homogeneity2('Data/echo_chamber2.json')
     #echo_chamber_similarity()
     #mean_edge_homogeneity_comparison()
-    echo_chamber_similarity_ranked()
+    #echo_chamber_similarity_ranked()
     #echo_chamber_group_homogeneity_size()
     end = time()
     print('%s taken'%(end-start))

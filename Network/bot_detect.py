@@ -72,7 +72,8 @@ def convert_json_csv():
     #df.to_csv(filename + 'bot_user_info.csv', encoding='utf-8', sep='\t')
 
 def load_bot():
-    with open('Data/bot.json', 'r') as f:
+    #with open('Data/bot.json', 'r') as f:
+    with open('Data/botresult.json', 'r') as f:
         bot = json.load(f)
     return bot
 

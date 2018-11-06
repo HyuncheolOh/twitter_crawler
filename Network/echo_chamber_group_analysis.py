@@ -254,22 +254,45 @@ def propagation_parent_to_child():
     else:
         echo_chamber_users = e_util.get_echo_chamber_users(filename)
 
+    echo_chamber_cascades = {}
+    tweet_cache = {}
 
+    '''
+    for postid in echo_chamber_users.keys():
+        
+        users = echo_chamber_users[postid] #echo chamber users 
+
+        with open('RetweetNew/' + postid, 'r') as f:
+            tweets = json.load(f)
+            tweet_cache[postid] = tweets
+            
+            for tweet in tweets.values():
+                if tweet['user'] in users:
+                    root_id = tweet['origin_tweet'] #root tweet id 
+                    echo_chamber_cascades[root_id] = 1
+        
+    echo_chamber_cascades_ids = echo_chamber_cascades.keys()
+    '''
+    #print(echo_chamber_cascades_ids)
     e_child = {}
     ne_child = {}
     e_time = {}
     ne_time = {}
+    ne_time2 = {}
     for i in range(1,20):
         e_child[i] = []
         ne_child[i] = []
         e_time[i] = {}
         ne_time[i] = {}
+        ne_time2[i] = {}
 
+    print(len(echo_chamber_users.keys()))
     for ccc, postid in enumerate(files):
         #if postid != '150232' and  postid != '29947':
         #    continue 
         with open(dirname + postid, 'r') as f:
             tweets = json.load(f)
+        #tweets = tweet_cache[postid]
 
         #if not util.is_politics(postid):
         #if not util.is_non_politics(postid):
@@ -287,6 +310,8 @@ def propagation_parent_to_child():
         new_list = sorted(sort.items(), key=lambda x: x[1])
         sorted_ids = [item[0] for item in new_list]
         e_users = echo_chamber_users[postid]
+        #e_users = echo_chamber_users.get(postid, [])
+        print(len(e_users))
         for i, tid in enumerate(sorted_ids):
             tweet = tweets[tid]['tweet']
             parent = tweets[tid]['parent']
@@ -297,17 +322,10 @@ def propagation_parent_to_child():
             ptid = tweets[tid]['parent_tweet'] 
             if cascade < 2:
                 continue
- 
+
             #bot filter
             if bot.check_bot(Bot, userid) != 0:
                 continue 
-
-            #print(e_users)
-            #print(userid)
-
-            #if tweets[tid]['child'] == 91:
-            #   print(postid, tid)
-            #    continue
 
             if userid in e_users:
                 e_child[tweets[tid]['depth']].append(tweets[tid]['child'])
@@ -319,16 +337,18 @@ def propagation_parent_to_child():
                 if e_time[tweets[ptid]['depth']].get(ptid, -1) > diff:
                     print(e_time[tweets[ptid]['depth']][ptid], diff)
 
-                if origin in e_users:
+                if parent in e_users:
+#                if origin in e_users:
                     if e_time[tweets[ptid]['depth']].get(ptid, -1) == -1:
                         e_time[tweets[ptid]['depth']][ptid] = diff
                 else:
                     if ne_time[tweets[ptid]['depth']].get(ptid, -1) == -1:
                         ne_time[tweets[ptid]['depth']][ptid] = diff
-         
+
         #if ccc == 5:
         #    break
    
+
     #remove child 0 count
     for i in range(1, 20):
         e_child[i] = [x for x in e_child[i] if x != 0]
@@ -343,6 +363,7 @@ def propagation_parent_to_child():
     for i in range(1, 20):
         e_time[i] = e_time[i].values()
         ne_time[i] = ne_time[i].values()
+        ne_time2[i] = ne_time2[i].values()
 
 
     #print(e_time)
@@ -353,11 +374,20 @@ def propagation_parent_to_child():
     box.set_label('Depth', 'Propagation Time')
     box.save_image('Image/%s/child_time_propagation.png'%folder)
   
-    #print(e_child)
-    #print(ne_child)
-    #child 0 is dominant. so w/ w/o child boxplot is needed 
-    #print(e_time)
-    #print(ne_time)
+    with open('Data/Figure/5_3_1.json', 'w') as f:
+        json.dump({'e_time':e_time, 'ne_time':ne_time, 'e_child':e_child, 'ne_child':ne_child}, f)
+
+    #with open('Data/Figure/5_3_1_2.json', 'w') as f:
+    #    json.dump({'e_time':e_time, 'ne_time':ne_time, 'e_child':e_child, 'ne_child':ne_child, 'ne_time2': ne_time2}, f)
+
+ 
+    #propagation time of non echo chamber users in echo cascade and non echo cascade
+    #box = BoxPlot(1)
+    #box.set_multiple_data([ne_time, ne_time2])
+    #box.set_ylog()
+    #box.set_label('Depth', 'Propagation Time')
+    #box.save_image('Image/%s/child_time_propagation_nonecho.png'%folder)
+
 
         
 def draw_propagation_velocity():
@@ -441,7 +471,7 @@ def draw_propagation_time_to_group():
     box.save_image('Image/%s/propagation_time_to_group_r.png'%folder)
 
 if __name__ == "__main__":
-    folder = '20181029'
+    folder = '20181103'
     start = time()
     #draw_propagation_velocity()
     #draw_propagation_time_to_group()

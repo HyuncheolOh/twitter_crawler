@@ -264,27 +264,37 @@ def echo_chamber_user_characteristics():
         
     echo_chamber_cascades_ids = echo_chamber_cascades.keys()
     e_depth = []; e_child = []; ne_depth = []; ne_child = [];
-    for postid in echo_chamber_users.keys():
-        tweets = tweet_cache[postid]
+    e_depth2 = []; e_child2 = []; ne_depth2 = []; ne_child2 = [];
+    files = os.listdir('RetweetNew')
+
+    for postid in files:
         users = echo_chamber_users[postid]
+        tweets = tweet_cache[postid]
 
         for tweet in tweets.values():
             if tweet['origin_tweet'] not in echo_chamber_cascades_ids:
-                continue
-
-            if tweet['user'] in users:
-                e_depth.append(tweet['depth'])
-                e_child.append(tweet['child'])
+                ne_depth2.append(tweet['depth'])
+                ne_child2.append(tweet['child'])
             else:
-                ne_depth.append(tweet['depth'])
-                ne_child.append(tweet['child'])
+                if tweet['user'] in users:
+                    e_depth.append(tweet['depth'])
+                    e_child.append(tweet['child'])
+                else:
+                    ne_depth.append(tweet['depth'])
+                    ne_child.append(tweet['child'])
 
     print('Data save in Data/Figure/5_1_1_2.json')
     with open('Data/Figure/5_1_1_2.json', 'w') as f:
-        json.dump({'e_depth':e_depth, 'e_child' : e_child, 'ne_depth':ne_depth, 'ne_child':ne_child}, f)
+        json.dump({'e_depth':e_depth, 'e_child' : e_child, 'ne_depth':ne_depth, 'ne_child':ne_child, 'ne_depth2':ne_depth2, 'ne_child2' : ne_child2}, f)
 
-    draw_cdf_plot([e_depth, ne_depth], 'Depth', ['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_depth_user_distribution'%folder, log_scale=False)
-    draw_cdf_plot([e_child, ne_child], 'Child', ['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_child_user_distribution'%folder)
+    draw_cdf_plot([e_depth, ne_depth], '', ['Echo chamber', 'Non echo chamber'], '', 'Image/%s/echo_depth_user_distribution'%folder, log_scale=False)
+    draw_cdf_plot([e_child, ne_child], '', ['Echo chamber', 'Non echo chamber'], '', 'Image/%s/echo_child_user_distribution'%folder)
+
+    draw_cdf_plot([ne_depth, ne_depth2], 'Depth', ['Echo chamber cascade', 'Non echo chamber cascade'], '', 'Image/%s/echo_depth_user_distribution2'%folder, log_scale=False)
+    draw_cdf_plot([ne_child, ne_child2], 'Child', ['Echo chamber cascade', 'Non echo chamber cascade'], '', 'Image/%s/echo_child_user_distribution2'%folder)
+
+    draw_ccdf_plot([ne_depth, ne_depth2], 'Depth', ['Echo chamber cascade', 'Non echo chamber cascade'], '', 'Image/%s/echo_depth_user_distribution2_ccdf'%folder, log_scale=False)
+    draw_ccdf_plot([ne_child, ne_child2], 'Child', ['Echo chamber cascade', 'Non echo chamber cascade'], '', 'Image/%s/echo_child_user_distribution2_ccdf'%folder)
 
     
 
@@ -305,6 +315,7 @@ def draw_echo_chamber_true_false():
     print(echo_chamber[0].count(1), echo_chamber[0].count(2), echo_chamber[0].count(3), echo_chamber[0].count(4), len(echo_chamber[0]))
     print(non_echo_chamber[0].count(1), non_echo_chamber[0].count(2), non_echo_chamber[0].count(3), non_echo_chamber[0].count(4), len(non_echo_chamber[0]))
 
+    return 
     #draw_cdf_plot([path_distribution, path_distribution2], 'Ratio', ['type1', 'type2'], '', 'Image/%s/echo_chamber_path_ratio2')
     non_echo_chamber[0].extend(echo_chamber[0])
     non_echo_chamber[1].extend(echo_chamber[1])
@@ -614,7 +625,7 @@ def echo_chamber_political_cascade_analysis(veracity=None):
 
 #    return politics, non_politics
 
-def draw_echo_chamber_cascade_chracteristics():
+def draw_echo_chamber_cascade_characteristics():
    
     start_time = time()
     echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber2.json')
@@ -623,18 +634,18 @@ def draw_echo_chamber_cascade_chracteristics():
     with open('Data/Figure/5_1_2.json', 'w') as f:
         json.dump({'echo':echo_chamber_values, 'necho':non_echo_chamber_values}, f)
 
+    """
     #echo_chamber_values, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber2.json')
-    draw_cdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',[], '', 'Image/%s/echo_depth3'%folder) 
-    draw_cdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',[], 'User Type', 'Image/%s/echo_breadth3'%folder) 
-    draw_cdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',[], 'User Type', 'Image/%s/echo_cascade3'%folder) 
-    draw_cdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',[], 'User Type', 'Image/%s/echo_unique_users3'%folder) 
+    draw_cdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], '',['Echo chamber', 'Non echo chamber'], '', 'Image/%s/echo_depth3'%folder) 
+    draw_cdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], '',['Echo chamber', 'Non echo chamber'], 'User Type', 'Image/%s/echo_breadth3'%folder) 
+    draw_cdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], '',['Echo chamber', 'Non echo chamber'], '', 'Image/%s/echo_cascade3'%folder) 
+    draw_cdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], '',['Echo chamber', 'Non echo chamber'], '', 'Image/%s/echo_unique_users3'%folder) 
    
     draw_ccdf_plot([echo_chamber_values['max_depth'].values(), non_echo_chamber_values['max_depth'].values()], 'Depth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_depth3_ccdf'%folder) 
     draw_ccdf_plot([echo_chamber_values['max_breadth'].values(), non_echo_chamber_values['max_breadth'].values()], 'Breadth',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_breadth3_ccdf'%folder) 
     draw_ccdf_plot([echo_chamber_values['cascade'].values(), non_echo_chamber_values['cascade'].values()], 'Cascade',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_cascade3_ccdf'%folder) 
     draw_ccdf_plot([echo_chamber_values['unique_users'].values(), non_echo_chamber_values['unique_users'].values()], 'Number of users',['Echo Chamber', 'Non Echo Chamber'], 'User Type', 'Image/%s/echo_unique_users3_ccdf'%folder) 
 
-    return 
     #degree ranked cascade 
     with open('Data/degree_ranked_users.json', 'r') as f:
         ranked_users = json.load(f)
@@ -664,13 +675,14 @@ def draw_echo_chamber_cascade_chracteristics():
     
     print('ranked cascade calculation done')
    
-    
+    """
+    """
     start_time = time()
-    echo_chamber_values2, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber3.json')
+    echo_chamber_values2, non_echo_chamber_values2 = echo_chamber_cascade_analysis('Data/echo_chamber3.json')
     end_time = time()
     print('echo chamber3 takes %s'%(end_time - start_time))
     start_time = time()
-    echo_chamber_values3, non_echo_chamber_values = echo_chamber_cascade_analysis('Data/echo_chamber4.json')
+    echo_chamber_values3, non_echo_chamber_values3 = echo_chamber_cascade_analysis('Data/echo_chamber4.json')
     end_time = time()
     print('echo chamber4 takes %s'%(end_time - start_time))
 
@@ -678,9 +690,11 @@ def draw_echo_chamber_cascade_chracteristics():
     draw_cdf_plot([echo_chamber_values['max_breadth'].values(), echo_chamber_values2['max_breadth'].values(), echo_chamber_values3['max_breadth'].values()], 'Breadth',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/%s/echo_breadth2'%folder) 
     draw_cdf_plot([echo_chamber_values['cascade'].values(), echo_chamber_values2['cascade'].values(), echo_chamber_values3['cascade'].values()], 'Cascade',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/%s/echo_cascade2'%folder) 
     draw_cdf_plot([echo_chamber_values['unique_users'].values(), echo_chamber_values2['unique_users'].values(), echo_chamber_values3['unique_users'].values()], 'Number of users',['Echo Chamber2', 'Echo Chamber3', 'Echo Chamber4'], 'User Type', 'Image/%s/echo_unique_users2'%folder) 
-    
-    
+   
 
+    with open('Data/Figure/5_1_2_2.json', 'w') as f:
+        json.dump({'echo_2':echo_chamber_values, 'echo_3':echo_chamber_values2, 'echo_4':echo_chamber_values3, 'necho_2':non_echo_chamber_values, 'necho_3':non_echo_chamber_values2, 'necho_4':non_echo_chamber_values3}, f)
+    """
 def echo_chamber_user_analysis():
     #get all echo chamber users per postid
     file_name = 'Data/echo_chamber2.json'
@@ -893,14 +907,15 @@ def draw_echo_chamber_user_analysis():
 def statistics(filename):
     with open(filename, 'r') as f:
         echo_chamber = json.load(f)
-
+    Bot = bot.load_bot()
     users = []
     echo_exist = 0 
     unique_users = {}
     for key in echo_chamber.keys():
         user_num = len(echo_chamber[key]) # users 
         for user in echo_chamber[key]:
-            unique_users[user] = 1
+            if bot.check_bot(Bot, user) == 0:
+                unique_users[user] = 1
         if user_num > 1:
             echo_exist += 1 
 
@@ -913,12 +928,12 @@ def statistics(filename):
 
 def draw_statistics():
     user2 = statistics('Data/echo_chamber2.json')
-    user3 = statistics('Data/echo_chamber3.json')
-    user4 = statistics('Data/echo_chamber4.json')
+    #user3 = statistics('Data/echo_chamber3.json')
+    #user4 = statistics('Data/echo_chamber4.json')
     #user5 = statistics('Data/echo_chamber5.json')
 
     #draw_cdf_plot([user2, user3, user4, user5], 'Number of Users', ['2', '3', '4', '5'], 'Echo Chamber', 'Image/%s/echo_chamber_statistics')
-    draw_cdf_plot([user2, user3, user4], 'Number of Users', ['Strength 2', 'Strength 3', 'Strength 4'], 'Echo Chamber', 'Image/%s/echo_chamber_statistics'%folder)
+    #draw_cdf_plot([user2, user3, user4], 'Number of Users', ['Strength 2', 'Strength 3', 'Strength 4'], 'Echo Chamber', 'Image/%s/echo_chamber_statistics'%folder)
    
 
 #show echo chamber users get information from whom  (echo chamber or non echo chamber user)
@@ -1162,7 +1177,7 @@ def draw_ccdf_plot(datas, datatype, legend, legend_type, filename, log_scale=Tru
 
 if __name__ == "__main__":
     #following_anlysis()
-    folder = '20181031' 
+    folder = '20181102' 
     dirname = 'RetweetNew/'
     start = time()
     #find_echo_chamber(2)
@@ -1172,11 +1187,11 @@ if __name__ == "__main__":
     
     #draw_statistics()
     #draw_echo_chamber_true_false()
-    propagation_within_echo_chamber()
-    #draw_echo_chamber_cascade_chracteristics()
+    #propagation_within_echo_chamber()
+    #draw_echo_chamber_cascade_characteristics()
     #echo_chamber_rumor_spread()
     #echo_chamber_political_cascade_analysis('False')
-    #echo_chamber_user_characteristics()
+    echo_chamber_user_characteristics()
     #depth_analysis()
 
     #echo_chamber_anlysis('Data/echo_chamber2.json', 'True')

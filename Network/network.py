@@ -3,6 +3,8 @@ import os
 import fileinput
 import time
 import veracity
+import bot_detect as bot
+from operator import itemgetter
 from dateutil import parser
 from random import shuffle
 from tweet_parser.tweet import Tweet
@@ -118,10 +120,34 @@ def sub_retweet_network2(confirm, newconfirm, unconfirm):
     global f_cache
     dir_name = '../Data/followers/followers/'
     count = 0
+    #newconfirm = sorted(newconfirm.items(), key=itemgetter(1), reverse=True)
+    #print(newconfirm.items())
+    #newconfirm = sorted(newconfirm.values())
+    sorted_newconfirm = sorted(newconfirm.items(), key=lambda x:x)
+    #$$$$$$$$$
+    #print(newconfirm)
+    #print([item['time'] for item in newconfirm])
+    #print(newconfirm[0])
+    #print(newconfirm[1])
+    #print(newconfirm[2])
+    #return 
+    newconfirm2 = {}
+    #order by time sequence 
+    sort_keys = []
+    for item in sorted_newconfirm:
+        key = item[0]
+        value = item[1]
+        #print(value)
+        sort_keys.append(key)
+        newconfirm2[key] = value
+    newconfirm = newconfirm2
+    #print([newconfirm[key]['time'] for key in sort_keys])
+
+    #print([item['time'] for item in newconfirm])
     for tid in unconfirm.keys():
         tweet1 = unconfirm[tid]
         user1 = tweet1['user']
-        for tid2 in newconfirm.keys():
+        for tid2 in sort_keys:
             tweet2 = newconfirm[tid2]
 
             if tweet1['confirm'] == False and tweet1['origin_tweet'] == tweet2['origin_tweet'] and tid2 != tweet1['origin']:
@@ -196,6 +222,7 @@ def get_tweet(path):
     t = {}
     unique_u = {}
     unique_f = {}
+    Bot = bot.load_bot() 
 
     for line in lines:
         #print(line)
@@ -208,6 +235,8 @@ def get_tweet(path):
         time1 = tweet['created_at']
         unique_u[u_id1] = 1
         
+        if bot.check_bot(Bot, t_id1) == 1:
+            continue
         #isretweeted
         try:
             #retweet = tweet['retweeted_status']
@@ -281,7 +310,7 @@ if __name__ == "__main__":
         #    continue
 
         #check retweet , friends already collected
-        Retweet = 'RetweetNew/'
+        Retweet = 'Retweet/'
         Friends = 'PolarFriends/'
         #if os.path.exists(Retweet + postid) and os.path.exists(Friends + postid):
         #    continue

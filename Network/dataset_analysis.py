@@ -80,6 +80,38 @@ def screen_name(userid):
             if tweet['user'] == userid:
                 return tweet['screen_name']
 
+
+#top retweeted users
+#sum of child 
+def top_retweeted_users():
+
+    Bot = bot.load_bot()
+    dir_name = "RetweetNew/"
+    files = os.listdir(dir_name)
+    tweet_num = 0
+    users = {}
+    cascade  = {}
+    all_retweet = {}
+    all_retweet_num = 0
+    for postid in files:
+        with open(dir_name + postid, 'r') as f:
+            tweets = json.load(f)
+        for tweet in tweets.values():
+            user = tweet['user']      
+            origin = tweet['origin_tweet']
+            cascade[origin] = 1
+            if bot.check_bot(Bot, user) == 0:
+                users[user] = users.get(user, 0) + tweet['child']
+                tweet_num += 1
+                all_retweet_num += tweet['child']
+
+    print('all users ' ,len(users))
+    print('all tweets ' , tweet_num)
+    print('all cascades ' , len(cascade))
+    print('all retweet num ' , all_retweet_num)
+    with open('Data/top_retweeted_users', 'w') as f:
+        json.dump(users, f)
+
 def top_participated_users(users):
     Bot = bot.load_bot()
     for key in user_participation:
@@ -99,12 +131,15 @@ def top_participated_users(users):
 
             if i < 2000:
                 top_1.append(item)
+            else:
+                print('top 1% ', len(user_participation[item]))
+                break
         
             if i < 100:
                 top_100.append(item)
 
-    with open('Data/top_users.json', 'w') as f:
-        json.dump({'top_0_1':top_0_1, 'top_1': top_1, 'top_100' : top_100}, f)
+#    with open('Data/top_users.json', 'w') as f:
+#        json.dump({'top_0_1':top_0_1, 'top_1': top_1, 'top_100' : top_100}, f)
 
 
 def retweet_graph_info(path):
@@ -439,6 +474,8 @@ def analysis():
     rumor_statistics()
 
 if __name__ == "__main__":
+    from time import time 
+    start = time()
     dirname = 'RetweetNew'
     foldername = '20181017'
     tweet_num = 0
@@ -452,9 +489,11 @@ if __name__ == "__main__":
     unique_user = {}
     cascade_num = {}
     user_participation = {}
-    analysis()
+    #analysis()
+    top_retweeted_users()
 
     f.close()
-
+    end = time()
+    print('%s takes'%(end - start))
 
 
