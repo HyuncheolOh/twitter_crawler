@@ -251,8 +251,12 @@ def draw_6_1_1_figures():
     #np.sort(degree)
     #w_sort = sorted(weight, reverse=True)
     w_sort = sorted(weight)
+    print('all weight and weight num below 10')
     print(len(weight), len([item for item in weight if item < 10]))
-    print(w_sort[:10])
+    #print(w_sort[:10])
+    print('all degree and degree num below 10')
+    print(degree)
+    print(len(degree), len([item for item in degree if item < 10]))
     
     top_one = int(len(weight) * 0.01)
     top_zeroone = int(len(weight) * 0.001)
@@ -266,12 +270,12 @@ def draw_6_1_1_figures():
     d_sort = sorted(degree, reverse=True)
     top_one = int(len(degree) * 0.01)
     print('degree all', len(degree), 'degree top 1%', d_sort[top_one])
-    draw_cdf_plot([degree], '', [''], '', 'Image/Figure/6_1_1_1.png')
-    draw_cdf_plot([weight], '', [''], '', 'Image/Figure/6_1_1_2.png')
-    draw_cdf_plot([weighted_degree], '', [''], '', 'Image/Figure/6_1_1_3.png')
-    draw_ccdf_plot([degree], '', [''], '', 'Image/Figure/6_1_1_4.png')
-    draw_ccdf_plot([weight], '', [''], '', 'Image/Figure/6_1_1_5.png')
-    draw_ccdf_plot([weighted_degree], '', [''], '', 'Image/Figure/6_1_1_6.png')
+    #draw_cdf_plot([degree], '', [''], '', 'Image/Figure/6_1_1_1.png')
+    #draw_cdf_plot([weight], '', [''], '', 'Image/Figure/6_1_1_2.png')
+    #draw_cdf_plot([weighted_degree], '', [''], '', 'Image/Figure/6_1_1_3.png')
+    #draw_ccdf_plot([degree], '', [''], '', 'Image/Figure/6_1_1_4.png')
+    #draw_ccdf_plot([weight], '', [''], '', 'Image/Figure/6_1_1_5.png')
+    #draw_ccdf_plot([weighted_degree], '', [''], '', 'Image/Figure/6_1_1_6.png')
 
     #draw_cdf_complex_plot([e_depth, ne_depth], '', ['Echo Chamber', 'Non Echo Chamber'], '', 'Image/Figure/5_1_1_3_1.png', log_scale=False)
     draw_cdf_complex_plot([weight], '', [''], '', 'Image/Figure/6_1_1_7.png')
@@ -300,6 +304,7 @@ def draw_6_2_1_figures():
 #upper-class / lower-class political homophily
 def draw_6_2_2_figures():
 
+
     with open('Data/Figure/6_2_2.json', 'r') as f:
         data = json.load(f)
 
@@ -312,11 +317,10 @@ def draw_6_2_2_figures():
     print(len(lw1),len(lower_class), len(lw1)/len(lower_class))
 
     #pdf.draw_multiline_pdf(data, 'Homogeneity', ['Upper Class', 'Lower Class'], 'Image/Figure/6_2_2.png')
-    draw_cdf_plot(data, '', ['Upper-class', 'Lower-class'], '', 'Image/Figure/6_2_2_1.png')
-
+    draw_cdf_plot(data, '', ['Top 10%', 'Bottom 10%'], '', 'Image/Figure/6_2_2_1.png')
+    
     with open('Data/Figure/6_2_2_2.json', 'r') as f:
         data = json.load(f)
-
 
     #pdf.draw_multiline_pdf(data, 'Mean Edge Homogeneity', ['Upper Class', 'Lower Class'], 'Image/Figure/6_2_2_2.png')
 
@@ -333,7 +337,8 @@ def draw_6_2_2_figures():
     print(len(up1), len(upper_class), len(up1)/len(upper_class))
     print(len(lw1), len(lower_class), len(lw1)/len(lower_class))
 
-    draw_cdf_plot([upper_class, lower_class], '', ['Upper-class', 'Lower-class'], '', 'Image/Figure/6_2_2_2.png')
+    draw_cdf_plot([upper_class, lower_class], '', ['Top 10%', 'Bottom 10%'], '', 'Image/Figure/6_2_2_2.png')
+
 
 #core echo chamber rumor participation
 def draw_6_3_1_figures():
@@ -403,7 +408,7 @@ def draw_6_3_1_figures():
     barplot.set_multiple_data([top01_p, top1_p, top5_p, top10_p], [top01_n, top1_n, top5_n, top10_n])
     barplot.set_xticks(['0.1%', '1%', '5%', '10%'])
     barplot.set_ylim(50)
-    barplot.set_label('Hub Echo Chambers', 'Cumulative Portion of Cascades (%)')
+    barplot.set_label('Hub Echo Chambers', 'Portion of Cascades (%)')
     #barplot.set_legends(['Cascade', 'Retweet'], '')
     barplot.save_image('Image/Figure/6_3_4.png')
 
@@ -441,8 +446,8 @@ if __name__ == "__main__":
     #draw_5_1_2_figures()
     #draw_5_2_1_figures()
     #draw_5_3_1_figures()
-    #draw_6_1_1_figures()
+    draw_6_1_1_figures()
     #draw_6_2_1_figures()
-    draw_6_2_2_figures()
+    #draw_6_2_2_figures()
     #draw_6_3_1_figures()
 

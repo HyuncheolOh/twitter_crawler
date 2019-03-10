@@ -928,8 +928,8 @@ def statistics(filename):
 
 def draw_statistics():
     user2 = statistics('Data/echo_chamber2.json')
-    #user3 = statistics('Data/echo_chamber3.json')
-    #user4 = statistics('Data/echo_chamber4.json')
+    user3 = statistics('Data/echo_chamber3.json')
+    user4 = statistics('Data/echo_chamber4.json')
     #user5 = statistics('Data/echo_chamber5.json')
 
     #draw_cdf_plot([user2, user3, user4, user5], 'Number of Users', ['2', '3', '4', '5'], 'Echo Chamber', 'Image/%s/echo_chamber_statistics')
@@ -1185,13 +1185,13 @@ if __name__ == "__main__":
     #find_echo_chamber(4)
     #find_echo_chamber(5)  not working because of memory problem
     
-    #draw_statistics()
+    draw_statistics()
     #draw_echo_chamber_true_false()
     #propagation_within_echo_chamber()
     #draw_echo_chamber_cascade_characteristics()
     #echo_chamber_rumor_spread()
     #echo_chamber_political_cascade_analysis('False')
-    echo_chamber_user_characteristics()
+    #echo_chamber_user_characteristics()
     #depth_analysis()
 
     #echo_chamber_anlysis('Data/echo_chamber2.json', 'True')

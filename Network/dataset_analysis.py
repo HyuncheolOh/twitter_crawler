@@ -91,6 +91,7 @@ def top_retweeted_users():
     tweet_num = 0
     users = {}
     cascade  = {}
+    one_cascade = {}
     all_retweet = {}
     all_retweet_num = 0
     for postid in files:
@@ -100,6 +101,8 @@ def top_retweeted_users():
             user = tweet['user']      
             origin = tweet['origin_tweet']
             cascade[origin] = 1
+            if tweet['cascade'] == 1:
+                one_cascade[origin] = 1
             if bot.check_bot(Bot, user) == 0:
                 users[user] = users.get(user, 0) + tweet['child']
                 tweet_num += 1
@@ -108,6 +111,7 @@ def top_retweeted_users():
     print('all users ' ,len(users))
     print('all tweets ' , tweet_num)
     print('all cascades ' , len(cascade))
+    print('one cascade ', len(one_cascade))
     print('all retweet num ' , all_retweet_num)
     with open('Data/top_retweeted_users', 'w') as f:
         json.dump(users, f)

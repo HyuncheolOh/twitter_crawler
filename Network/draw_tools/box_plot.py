@@ -88,3 +88,4 @@ class BoxPlot:
         plt.savefig(path, bbox_inches='tight')
         plt.savefig(path + '.eps', bbox_inches='tight')
 
+

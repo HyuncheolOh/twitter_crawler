@@ -456,6 +456,7 @@ def get_depth_time_series(veracity):
     #cascade_depth, cascade_depth_users - time or user to depth of cascade 
     return depth_time, depth_user, cascade_depth, userid_cascade, cascade_depth_users
 
+#time to depth echo chamber and non echo chamber 
 def time_to_depth_echo_chamber(filename):
     
     _, _, time_depth, _, user_depth = get_depth_time_series(None)    

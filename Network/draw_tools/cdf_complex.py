@@ -16,7 +16,8 @@ class CDFCCDFPlot():
         self.count = 0
         #self.colors = ['#1f78b4', '#33a02c']
         #self.colors = ['#377eb8', '#4daf4a']  #blue, green
-        self.colors = ['r', 'b'] #green ,orange 
+        #self.colors = ['r', 'b'] #green ,orange 
+        self.colors = ['#b30000', '#2d7cb5']
 
     def plot_cdf(self, data, ax):
         sorted_vals = np.sort(data)

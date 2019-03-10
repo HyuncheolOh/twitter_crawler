@@ -16,7 +16,7 @@ python graph_info.py update
 
 echo 'Polarization update'
 Rscript user_polarization.R
-cd PolarResult
+cd PolarUser
 python convert.py
 cd ..
 

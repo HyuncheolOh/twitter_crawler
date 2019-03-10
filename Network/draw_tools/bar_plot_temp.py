@@ -17,6 +17,7 @@ class BarPlot:
         #self.ax = self.fig.add_subplot(self.subplot_x, self.subplot_y, self.fig_num)
         y_pos = np.arange(len(data))
         self.ax.bar(y_pos, data, align='center', color='#2d7cb5', width=0.3)
+        #self.ax.bar(y_pos, data, align='center', color='#31a354', width=0.3)
         plt.xticks(y_pos, ticks, rotation=rotation)
         self.ax.title.set_text(name)
         #self.ax.set_yscale('symlog')
@@ -77,7 +78,8 @@ class BarPlot:
         self.ax.set_yscale('symlog')
 
     def set_xticks(self, xticks):
-        plt.xticks(np.arange(len(xticks)) + 0.3 + 0.2, xticks, fontsize=12)
+        #plt.xticks(np.arange(len(xticks)) + 0.3 + 0.2, xticks, fontsize=12)
+        plt.xticks(np.arange(len(xticks)), xticks, fontsize=12)
 
     def set_x_bins(self, bins):
         self.ax.locator_params(nbins=bins, axis='x')
@@ -98,8 +100,12 @@ class BarPlot:
 
 if __name__ == "__main__":
     bar = BarPlot(1)
-    bar.set_data([0,1,2,3,4], [270, 502, 621, 642, 967, 717], '')
+    bar.set_data([0,1,2,3,4], [271, 503, 629, 697, 1450, 1119], '')
     bar.set_xticks(['2012', '2013', '2014', '2015', '2016', '2017'])
     bar.save_image('snopes.png')
 
+    #bar = BarPlot(1)
+    #bar.set_data([0,1,2,3,4,5,6,7], [950, 835, 332, 249, 230, 178, 130, 115], '', rotation='vertical')
+    #bar.set_xticks(['Fake News', 'Fauxtography', 'Politics', 'Media Matters', 'Inboxer Rebellion', 'Politicians', 'Entertainment', 'Medical']) 
+    #bar.save_image('snopes2.png')
 
